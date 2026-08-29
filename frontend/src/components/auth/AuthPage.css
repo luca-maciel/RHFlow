@@ -95,7 +95,7 @@ button {
 
   width: min(1080px, 100%);
 
-  height: 640px;
+  height: 720px;
 
   background: var(--white);
 
@@ -880,7 +880,7 @@ button {
   }
 
   .auth-container {
-    height: 620px;
+    height: 720px;
   }
 
   .panel-content {
