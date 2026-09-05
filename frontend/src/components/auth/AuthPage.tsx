@@ -363,7 +363,7 @@ export default function AuthPage() {
             "
           />
 
-          <div className="relative z-10 flex h-full w-full flex-col p-[42px_52px]">
+          <div className="relative z-10 flex h-full w-full flex-col p-[42px_52px] gap-50">
             {/* Brand */}
 
             <div className="flex items-center gap-2.5 text-xl font-bold">
