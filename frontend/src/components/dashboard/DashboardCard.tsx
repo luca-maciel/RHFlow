@@ -10,8 +10,8 @@ export default function DashboardCard({
   children,
 }: DashboardCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <h2 className="mb-5 text-sm font-semibold text-slate-900">
+    <div className="rounded-2xl border border-app-border bg-surface p-5">
+      <h2 className="mb-5 text-sm font-semibold text-foreground">
         {title}
       </h2>
 

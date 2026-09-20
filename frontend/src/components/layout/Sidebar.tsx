@@ -51,7 +51,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           fixed
           inset-0
           z-40
-          bg-slate-950/30
+          bg-background-950/30
           backdrop-blur-[2px]
 
           transition-opacity
@@ -82,8 +82,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           flex-col
 
           border-r
-          border-slate-200
-          bg-white
+          border-app-border
+          bg-surface
 
           shadow-2xl
 
@@ -125,7 +125,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               R
             </div>
 
-            <span className="text-lg font-bold tracking-tight text-slate-900">
+            <span className="text-lg font-bold tracking-tight text-foreground">
               RHFlow
             </span>
           </div>
@@ -145,12 +145,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               rounded-lg
 
               text-lg
-              text-slate-400
+              text-muted-light
 
               transition
 
-              hover:bg-slate-100
-              hover:text-slate-900
+              hover:bg-background-100
+              hover:text-foreground
 
               md:hidden
             "
@@ -171,7 +171,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               font-semibold
               uppercase
               tracking-wider
-              text-slate-400
+              text-muted-light
             "
           >
             Menu
@@ -205,8 +205,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         ${
           isActive
-            ? "bg-blue-50 text-blue-600"
-            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            ? "bg-icon-surface text-blue-600"
+            : "text-muted hover:bg-background-50 hover:text-foreground"
         }
       `}
                 >
@@ -219,7 +219,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           justify-center
           text-base
 
-          ${isActive ? "text-blue-600" : "text-slate-400"}
+          ${isActive ? "text-blue-600" : "text-muted-light"}
         `}
                   >
                     {item.icon}
@@ -243,7 +243,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               font-semibold
               uppercase
               tracking-wider
-              text-slate-400
+              text-muted-light
             "
           >
             Sistema
@@ -266,12 +266,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               text-left
               text-[13px]
               font-medium
-              text-slate-500
+              text-muted
 
               transition-all
 
-              hover:bg-slate-50
-              hover:text-slate-900
+              hover:bg-background-50
+              hover:text-foreground
             "
           >
             <span
@@ -283,7 +283,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 justify-center
 
                 text-base
-                text-slate-400
+                text-muted-light
               "
             >
               ⚙
@@ -294,7 +294,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* USUÁRIO */}
 
-        <div className="border-t border-slate-100 p-4">
+        <div className="border-t border-app-border p-4">
           <div className="flex items-center gap-3 rounded-xl p-2">
             <div
               className="
@@ -318,18 +318,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-slate-900">
+              <p className="truncate text-xs font-semibold text-foreground">
                 Lucas
               </p>
 
-              <p className="truncate text-[10px] text-slate-400">
+              <p className="truncate text-[10px] text-muted-light">
                 Administrador
               </p>
             </div>
 
             <button
               type="button"
-              className="ml-auto text-slate-400 hover:text-slate-700"
+              className="ml-auto text-muted-light hover:text-foreground"
             >
               ⋮
             </button>

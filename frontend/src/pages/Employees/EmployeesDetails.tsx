@@ -69,10 +69,10 @@ function StatusBadge({
   status: EmployeeStatus;
 }) {
   const styles: Record<EmployeeStatus, string> = {
-    ATIVO: "bg-emerald-50 text-emerald-600",
-    FÉRIAS: "bg-blue-50 text-blue-600",
-    AFASTADO: "bg-amber-50 text-amber-600",
-    INATIVO: "bg-slate-100 text-slate-500",
+    ATIVO: "bg-surface-secondary text-emerald-600",
+    FÉRIAS: "bg-surface-secondary text-blue-600",
+    AFASTADO: "bg-surface-secondary text-amber-600",
+    INATIVO: "bg-surface-secondary text-muted",
   };
 
   const dots: Record<EmployeeStatus, string> = {
@@ -121,11 +121,11 @@ function InfoItem({
 }: InfoItemProps) {
   return (
     <div>
-      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
         {label}
       </p>
 
-      <p className="mt-1 text-xs font-medium text-slate-700">
+      <p className="mt-1 text-xs font-medium text-foreground">
         {value}
       </p>
     </div>
@@ -144,7 +144,7 @@ export default function EmployeeDetails() {
     ) ?? employeesMock[0];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() =>
@@ -174,7 +174,7 @@ export default function EmployeeDetails() {
               gap-2
               text-xs
               font-semibold
-              text-slate-500
+              text-muted
               transition
               hover:text-blue-600
             "
@@ -190,8 +190,8 @@ export default function EmployeeDetails() {
               mb-6
               rounded-2xl
               border
-              border-slate-200
-              bg-white
+              border-app-border
+              bg-surface
               p-5
 
               sm:p-6
@@ -218,10 +218,10 @@ export default function EmployeeDetails() {
                     items-center
                     justify-center
                     rounded-2xl
-                    bg-blue-100
+                    bg-icon-surface
                     text-base
                     font-bold
-                    text-blue-600
+                    text-foreground
 
                     sm:h-20
                     sm:w-20
@@ -238,7 +238,7 @@ export default function EmployeeDetails() {
                         text-xl
                         font-bold
                         tracking-tight
-                        text-slate-900
+                        text-foreground
 
                         sm:text-2xl
                       "
@@ -251,11 +251,11 @@ export default function EmployeeDetails() {
                     />
                   </div>
 
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     {employee.cargo}
                   </p>
 
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-[10px] text-muted-light">
                     Matrícula {employee.matricula}
                   </p>
                 </div>
@@ -278,14 +278,14 @@ export default function EmployeeDetails() {
                     flex-1
                     rounded-xl
                     border
-                    border-slate-200
+                    border-app-border
                     px-4
                     py-2.5
                     text-xs
                     font-semibold
-                    text-slate-600
+                    text-muted
                     transition
-                    hover:bg-slate-50
+                    hover:bg-background
 
                     md:flex-none
                   "
@@ -330,42 +330,42 @@ export default function EmployeeDetails() {
               xl:grid-cols-4
             "
           >
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+            <div className="rounded-2xl border border-app-border bg-surface p-5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                 Empresa
               </p>
 
-              <p className="mt-2 text-xs font-semibold text-slate-900">
+              <p className="mt-2 text-xs font-semibold text-foreground">
                 {employee.empresa}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+            <div className="rounded-2xl border border-app-border bg-surface p-5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                 Departamento
               </p>
 
-              <p className="mt-2 text-xs font-semibold text-slate-900">
+              <p className="mt-2 text-xs font-semibold text-foreground">
                 {employee.departamento}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+            <div className="rounded-2xl border border-app-border bg-surface p-5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                 Cargo
               </p>
 
-              <p className="mt-2 text-xs font-semibold text-slate-900">
+              <p className="mt-2 text-xs font-semibold text-foreground">
                 {employee.cargo}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+            <div className="rounded-2xl border border-app-border bg-surface p-5">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                 Admissão
               </p>
 
-              <p className="mt-2 text-xs font-semibold text-slate-900">
+              <p className="mt-2 text-xs font-semibold text-foreground">
                 {employee.admissao}
               </p>
             </div>
@@ -384,13 +384,13 @@ export default function EmployeeDetails() {
           >
             {/* DADOS PESSOAIS */}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+            <div className="rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
               <div className="mb-6">
-                <h2 className="text-sm font-semibold text-slate-900">
+                <h2 className="text-sm font-semibold text-foreground">
                   Dados pessoais
                 </h2>
 
-                <p className="mt-1 text-[10px] text-slate-400">
+                <p className="mt-1 text-[10px] text-muted-light">
                   Informações pessoais e de contato.
                 </p>
               </div>
@@ -439,13 +439,13 @@ export default function EmployeeDetails() {
 
             {/* DADOS PROFISSIONAIS */}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+            <div className="rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
               <div className="mb-6">
-                <h2 className="text-sm font-semibold text-slate-900">
+                <h2 className="text-sm font-semibold text-foreground">
                   Dados profissionais
                 </h2>
 
-                <p className="mt-1 text-[10px] text-slate-400">
+                <p className="mt-1 text-[10px] text-muted-light">
                   Informações do vínculo com a empresa.
                 </p>
               </div>
@@ -496,7 +496,7 @@ export default function EmployeeDetails() {
                 />
 
                 <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                     Status
                   </p>
 
@@ -512,13 +512,13 @@ export default function EmployeeDetails() {
 
           {/* HISTÓRICO */}
 
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+          <section className="mt-6 rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
             <div className="mb-6">
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="text-sm font-semibold text-foreground">
                 Histórico
               </h2>
 
-              <p className="mt-1 text-[10px] text-slate-400">
+              <p className="mt-1 text-[10px] text-muted-light">
                 Últimas movimentações do funcionário.
               </p>
             </div>
@@ -528,11 +528,11 @@ export default function EmployeeDetails() {
                 <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
 
                 <div>
-                  <p className="text-xs font-semibold text-slate-900">
+                  <p className="text-xs font-semibold text-foreground">
                     Funcionário admitido
                   </p>
 
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-[10px] text-muted-light">
                     Admitido como Desenvolvedor Backend em{" "}
                     {employee.admissao}.
                   </p>
@@ -543,11 +543,11 @@ export default function EmployeeDetails() {
                 <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
 
                 <div>
-                  <p className="text-xs font-semibold text-slate-900">
+                  <p className="text-xs font-semibold text-foreground">
                     Cadastro atualizado
                   </p>
 
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-[10px] text-muted-light">
                     Informações profissionais atualizadas recentemente.
                   </p>
                 </div>

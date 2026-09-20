@@ -16,8 +16,8 @@ export default function StatCard({
       className="
         rounded-2xl
         border
-        border-slate-200
-        bg-white
+        border-app-border
+        bg-surface
         p-5
 
         transition-all
@@ -29,11 +29,11 @@ export default function StatCard({
     >
       <div className="mb-5 flex items-start justify-between">
         <div>
-          <p className="text-[11px] font-medium text-slate-400">
+          <p className="text-[11px] font-medium text-muted-light">
             {title}
           </p>
 
-          <p className="mt-1.5 text-[27px] font-bold tracking-tight text-slate-900">
+          <p className="mt-1.5 text-[27px] font-bold tracking-tight text-foreground">
             {value}
           </p>
         </div>
@@ -46,7 +46,7 @@ export default function StatCard({
             items-center
             justify-center
             rounded-xl
-            bg-blue-50
+            bg-icon-surface
             text-lg
           "
         >
@@ -54,7 +54,7 @@ export default function StatCard({
         </div>
       </div>
 
-      <p className="text-[10px] text-slate-400">
+      <p className="text-[10px] text-muted-light">
         {description}
       </p>
     </div>

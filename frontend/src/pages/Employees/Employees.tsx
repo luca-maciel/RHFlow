@@ -88,15 +88,15 @@ function getInitials(name: string) {
 
 function StatusBadge({ status }: { status: EmployeeStatus }) {
   const styles: Record<EmployeeStatus, string> = {
-    ATIVO: "bg-emerald-50 text-emerald-600",
-    FÉRIAS: "bg-blue-50 text-blue-600",
-    AFASTADO: "bg-amber-50 text-amber-600",
-    INATIVO: "bg-slate-100 text-slate-500",
+    ATIVO: "bg-surface-secondary text-emerald-600",
+    FÉRIAS: "bg-surface-secondary text-blue-600",
+    AFASTADO: "bg-surface-secondary text-amber-600",
+    INATIVO: "bg-surface-secondary text-muted",
   };
 
   const dotStyles: Record<EmployeeStatus, string> = {
     ATIVO: "bg-emerald-500",
-    FÉRIAS: "bg-blue-500",
+    FÉRIAS: "bg-icon-surface",
     AFASTADO: "bg-amber-500",
     INATIVO: "bg-slate-400",
   };
@@ -191,7 +191,7 @@ export default function Employees() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <Header onMenuClick={() => setSidebarOpen(true)} />
@@ -206,11 +206,11 @@ export default function Employees() {
                 Gestão de pessoas
               </p>
 
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[28px]">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px]">
                 Funcionários
               </h1>
 
-              <p className="mt-1 text-xs text-slate-500 md:text-sm">
+              <p className="mt-1 text-xs text-muted md:text-sm">
                 Gerencie os colaboradores cadastrados no RHFlow.
               </p>
             </div>
@@ -243,15 +243,15 @@ export default function Employees() {
 
           {/* CARD PRINCIPAL */}
 
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+          <section className="overflow-hidden rounded-2xl border border-app-border bg-surface">
             {/* TOOLBAR */}
 
-            <div className="border-b border-slate-100 p-4 sm:p-5">
+            <div className="border-b border-app-border p-4 sm:p-5">
               <div className="flex flex-col gap-4">
                 {/* Busca */}
 
                 <div className="relative w-full lg:max-w-[380px]">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-light">
                     ⌕
                   </span>
 
@@ -265,16 +265,16 @@ export default function Employees() {
                       w-full
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-slate-50
+                      border-app-border
+                      bg-background
                       pl-9
                       pr-4
                       text-xs
-                      text-slate-900
+                      text-foreground
                       outline-none
-                      placeholder:text-slate-400
+                      placeholder:text-muted-light
                       focus:border-blue-600
-                      focus:bg-white
+                      focus:bg-surface
                       focus:ring-[3px]
                       focus:ring-blue-600/10
                     "
@@ -287,7 +287,7 @@ export default function Employees() {
                   <select
                     value={company}
                     onChange={(event) => setCompany(event.target.value)}
-                    className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 outline-none focus:border-blue-600"
+                    className="h-10 rounded-xl border border-app-border bg-surface px-3 text-xs text-muted outline-none focus:border-blue-600"
                   >
                     <option value="TODAS">Todas as empresas</option>
 
@@ -301,7 +301,7 @@ export default function Employees() {
                   <select
                     value={department}
                     onChange={(event) => setDepartment(event.target.value)}
-                    className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 outline-none focus:border-blue-600"
+                    className="h-10 rounded-xl border border-app-border bg-surface px-3 text-xs text-muted outline-none focus:border-blue-600"
                   >
                     <option value="TODOS">Todos os departamentos</option>
 
@@ -315,7 +315,7 @@ export default function Employees() {
                   <select
                     value={position}
                     onChange={(event) => setPosition(event.target.value)}
-                    className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 outline-none focus:border-blue-600"
+                    className="h-10 rounded-xl border border-app-border bg-surface px-3 text-xs text-muted outline-none focus:border-blue-600"
                   >
                     <option value="TODOS">Todos os cargos</option>
 
@@ -329,7 +329,7 @@ export default function Employees() {
                   <select
                     value={status}
                     onChange={(event) => setStatus(event.target.value)}
-                    className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-600 outline-none focus:border-blue-600"
+                    className="h-10 rounded-xl border border-app-border bg-surface px-3 text-xs text-muted outline-none focus:border-blue-600"
                   >
                     <option value="TODOS">Todos os status</option>
 
@@ -349,15 +349,15 @@ export default function Employees() {
                       h-10
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-white
+                      border-app-border
+                      bg-surface
                       px-3
                       text-xs
                       font-semibold
-                      text-slate-500
+                      text-muted
                       transition
-                      hover:bg-slate-50
-                      hover:text-slate-900
+                      hover:bg-background
+                      hover:text-foreground
                     "
                   >
                     Limpar filtros
@@ -365,7 +365,7 @@ export default function Employees() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-muted-light">
                     {filteredEmployees.length} funcionários encontrados
                   </p>
                 </div>
@@ -377,32 +377,32 @@ export default function Employees() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[1100px]">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/70">
-                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  <tr className="border-b border-app-border bg-background/70">
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-light">
                       Funcionário
                     </th>
 
-                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-light">
                       Matrícula
                     </th>
 
-                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-light">
                       Cargo
                     </th>
 
-                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-light">
                       Departamento
                     </th>
 
-                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-light">
                       Admissão
                     </th>
 
-                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-light">
                       Status
                     </th>
 
-                    <th className="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <th className="px-5 py-3 text-right text-[10px] font-semibold uppercase tracking-wide text-muted-light">
                       Ações
                     </th>
                   </tr>
@@ -412,39 +412,39 @@ export default function Employees() {
                   {filteredEmployees.map((employee) => (
                     <tr
                       key={employee.id}
-                      className="border-b border-slate-100 transition last:border-b-0 hover:bg-slate-50/70"
+                      className="border-b border-app-border transition last:border-b-0 hover:bg-background/70"
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-600">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-icon-surface text-[11px] font-bold text-foreground">
                             {getInitials(employee.nome)}
                           </div>
 
                           <div className="min-w-0">
-                            <p className="text-xs font-semibold text-slate-900">
+                            <p className="text-xs font-semibold text-foreground">
                               {employee.nome}
                             </p>
 
-                            <p className="mt-0.5 text-[10px] text-slate-400">
+                            <p className="mt-0.5 text-[10px] text-muted-light">
                               {employee.email}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-xs font-medium text-slate-500">
+                      <td className="px-5 py-4 text-xs font-medium text-muted">
                         {employee.matricula}
                       </td>
 
-                      <td className="px-5 py-4 text-xs text-slate-500">
+                      <td className="px-5 py-4 text-xs text-muted">
                         {employee.cargo}
                       </td>
 
-                      <td className="px-5 py-4 text-xs text-slate-500">
+                      <td className="px-5 py-4 text-xs text-muted">
                         {employee.departamento}
                       </td>
 
-                      <td className="px-5 py-4 text-xs text-slate-500">
+                      <td className="px-5 py-4 text-xs text-muted">
                         {employee.admissao}
                       </td>
 
@@ -467,7 +467,7 @@ export default function Employees() {
                               font-semibold
                               text-blue-600
                               transition
-                              hover:bg-blue-50
+                              hover:bg-icon-surface
                             "
                           >
                             Visualizar
@@ -475,14 +475,14 @@ export default function Employees() {
 
                           <button
                             type="button"
-                            className="rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100"
+                            className="rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-muted transition hover:bg-surface-hover"
                           >
                             Editar
                           </button>
 
                           <button
                             type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-light transition hover:bg-surface-hover hover:text-foreground"
                           >
                             ⋮
                           </button>
@@ -500,22 +500,22 @@ export default function Employees() {
               {filteredEmployees.map((employee) => (
                 <article
                   key={employee.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                  className="rounded-2xl border border-app-border bg-surface p-4 shadow-sm"
                 >
                   {/* Header */}
 
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-600">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-icon-surface text-[11px] font-bold text-blue-600">
                         {getInitials(employee.nome)}
                       </div>
 
                       <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-slate-900">
+                        <h3 className="truncate text-sm font-semibold text-foreground">
                           {employee.nome}
                         </h3>
 
-                        <p className="truncate text-[10px] text-slate-400">
+                        <p className="truncate text-[10px] text-muted-light">
                           {employee.email}
                         </p>
                       </div>
@@ -528,51 +528,51 @@ export default function Employees() {
 
                   <div className="grid grid-cols-2 gap-x-4 gap-y-4">
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                         Matrícula
                       </p>
 
-                      <p className="mt-1 text-xs font-semibold text-slate-700">
+                      <p className="mt-1 text-xs font-semibold text-foreground">
                         {employee.matricula}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                         Admissão
                       </p>
 
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-muted">
                         {employee.admissao}
                       </p>
                     </div>
 
                     <div className="col-span-2">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                         Cargo
                       </p>
 
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-muted">
                         {employee.cargo}
                       </p>
                     </div>
 
                     <div className="col-span-2">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                         Departamento
                       </p>
 
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-muted">
                         {employee.departamento}
                       </p>
                     </div>
 
                     <div className="col-span-2">
-                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
                         Empresa
                       </p>
 
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="mt-1 text-xs text-muted">
                         {employee.empresa}
                       </p>
                     </div>
@@ -580,7 +580,7 @@ export default function Employees() {
 
                   {/* Botões */}
 
-                  <div className="mt-4 flex gap-2 border-t border-slate-100 pt-4">
+                  <div className="mt-4 flex gap-2 border-t border-app-border pt-4">
                     <button
                       type="button"
                       onClick={() => {
@@ -594,7 +594,7 @@ export default function Employees() {
                         font-semibold
                         text-blue-600
                         transition
-                        hover:bg-blue-50
+                        hover:bg-icon-surface
                       "
                     >
                       Visualizar
@@ -625,15 +625,15 @@ export default function Employees() {
 
               {filteredEmployees.length === 0 && (
                 <div className="py-14 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-surface-secondary text-muted-light">
                     ⌕
                   </div>
 
-                  <p className="text-xs font-semibold text-slate-900">
+                  <p className="text-xs font-semibold text-foreground">
                     Nenhum funcionário encontrado
                   </p>
 
-                  <p className="mt-1 text-[10px] leading-5 text-slate-400">
+                  <p className="mt-1 text-[10px] leading-5 text-muted-light">
                     Tente alterar os filtros utilizados.
                   </p>
 

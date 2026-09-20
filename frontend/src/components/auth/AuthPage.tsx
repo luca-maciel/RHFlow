@@ -74,7 +74,7 @@ export default function AuthPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 md:flex md:items-center md:justify-center md:p-10">
+    <main className="min-h-screen bg-background md:flex md:items-center md:justify-center md:p-10">
       {/* ======================================================
           CONTAINER PRINCIPAL
       ======================================================= */}
@@ -85,7 +85,7 @@ export default function AuthPage() {
           min-h-screen
           w-full
           overflow-hidden
-          bg-white
+          bg-surface
 
           md:h-[720px]
           md:min-h-0
@@ -132,7 +132,7 @@ export default function AuthPage() {
               h-52
               w-52
               rounded-full
-              bg-white/5
+              bg-surface/5
             "
           />
 
@@ -162,7 +162,7 @@ export default function AuthPage() {
                 rounded-xl
                 border
                 border-white/15
-                bg-white/15
+                bg-surface/15
                 backdrop-blur
               "
             >
@@ -219,7 +219,7 @@ export default function AuthPage() {
               h-56
               w-56
               rounded-full
-              bg-white/5
+              bg-surface/5
             "
           />
 
@@ -250,7 +250,7 @@ export default function AuthPage() {
                   rounded-xl
                   border
                   border-white/15
-                  bg-white/15
+                  bg-surface/15
                   backdrop-blur
                 "
               >
@@ -292,7 +292,7 @@ export default function AuthPage() {
                   duration-200
 
                   hover:-translate-y-0.5
-                  hover:bg-white
+                  hover:bg-surface
                   hover:text-blue-600
                 "
               >
@@ -346,7 +346,7 @@ export default function AuthPage() {
               h-56
               w-56
               rounded-full
-              bg-white/5
+              bg-surface/5
             "
           />
 
@@ -377,7 +377,7 @@ export default function AuthPage() {
                   rounded-xl
                   border
                   border-white/15
-                  bg-white/15
+                  bg-surface/15
                   backdrop-blur
                 "
               >
@@ -419,7 +419,7 @@ export default function AuthPage() {
                   duration-200
 
                   hover:-translate-y-0.5
-                  hover:bg-white
+                  hover:bg-surface
                   hover:text-blue-600
                 "
               >
@@ -443,7 +443,7 @@ export default function AuthPage() {
     w-full
     justify-center
     items-center
-    bg-white
+    bg-surface
     md:h-full
     md:min-h-0
     md:w-1/2
@@ -485,7 +485,7 @@ export default function AuthPage() {
           >
             {/* Desktop brand */}
 
-            <div className="mb-6 hidden items-center gap-2.5 text-lg font-bold text-slate-900 md:flex">
+            <div className="mb-6 hidden items-center gap-2.5 text-lg font-bold text-foreground md:flex">
               <div
                 className="
                   flex
@@ -506,10 +506,10 @@ export default function AuthPage() {
 
             {/* Heading */}
             <div className="mb-7">
-              <h1 className="mb-2 text-[30px] font-bold tracking-tight text-slate-900 md:text-[31px]">
+              <h1 className="mb-2 text-[30px] font-bold tracking-tight text-foreground md:text-[31px]">
                 Login
               </h1>
-              <p className="text-[13px] leading-[1.5] text-slate-500">
+              <p className="text-[13px] leading-[1.5] text-muted">
                 Entre na sua conta para continuar.
               </p>
             </div>
@@ -520,12 +520,12 @@ export default function AuthPage() {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="login-email"
-                  className="text-xs font-semibold text-slate-900">
+                  className="text-xs font-semibold text-foreground">
                   E-mail
                 </label>
 
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-slate-400">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-light">
                     @
                   </span>
                   <input
@@ -541,14 +541,14 @@ export default function AuthPage() {
                       w-full
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-white
+                      border-app-border
+                      bg-surface
                       pl-[38px]
                       pr-4
                       text-[13px]
-                      text-slate-900
+                      text-foreground
                       outline-none
-                      placeholder:text-slate-400
+                      placeholder:text-muted-light
                       focus:border-blue-600
                       focus:ring-[3px]
                       focus:ring-blue-600/10
@@ -562,7 +562,7 @@ export default function AuthPage() {
                 <div className="flex items-center justify-between">
                   <label
                     htmlFor="login-password"
-                    className="text-xs font-semibold text-slate-900">
+                    className="text-xs font-semibold text-foreground">
                     Senha
                   </label>
 
@@ -582,7 +582,7 @@ export default function AuthPage() {
                 </div>
 
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-slate-400">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-light">
                     •
                   </span>
 
@@ -599,14 +599,14 @@ export default function AuthPage() {
                       w-full
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-white
+                      border-app-border
+                      bg-surface
                       pl-[38px]
                       pr-[85px]
                       text-[13px]
-                      text-slate-900
+                      text-foreground
                       outline-none
-                      placeholder:text-slate-400
+                      placeholder:text-muted-light
                       focus:border-blue-600
                       focus:ring-[3px]
                       focus:ring-blue-600/10
@@ -628,7 +628,7 @@ export default function AuthPage() {
                       px-1
                       text-[10px]
                       font-semibold
-                      text-slate-400
+                      text-muted-light
                       hover:text-blue-600
                     "
                   >
@@ -665,12 +665,12 @@ export default function AuthPage() {
             {/* Divider */}
 
             <div className="my-6 flex items-center gap-2.5">
-              <span className="h-px flex-1 bg-slate-200" />
-              <span className="whitespace-nowrap text-[10px] text-slate-400">
+              <span className="h-px flex-1 bg-app-border" />
+              <span className="whitespace-nowrap text-[10px] text-muted-light">
                 ou continue com
               </span>
 
-              <span className="h-px flex-1 bg-slate-200" />
+              <span className="h-px flex-1 bg-app-border" />
             </div>
 
             {/* Social */}
@@ -688,16 +688,16 @@ export default function AuthPage() {
                     justify-center
                     rounded-xl
                     border
-                    border-slate-200
-                    bg-white
+                    border-app-border
+                    bg-surface
                     text-xs
                     font-bold
-                    text-slate-900
+                    text-foreground
                     transition-all
                     duration-200
                     hover:-translate-y-0.5
-                    hover:border-slate-300
-                    hover:bg-slate-50
+                    hover:border-primary
+                    hover:bg-background
                   "
                 >
                   {provider}
@@ -706,7 +706,7 @@ export default function AuthPage() {
             </div>
 
             {/* Footer */}
-            <p className="mt-5 text-center text-[11px] text-slate-500">
+            <p className="mt-5 text-center text-[11px] text-muted">
               Não tem uma conta?
               <button
                 type="button"
@@ -741,7 +741,7 @@ export default function AuthPage() {
             w-full
             justify-center
             overflow-y-auto
-            bg-white
+            bg-surface
 
             md:h-full
             md:min-h-0
@@ -787,7 +787,7 @@ export default function AuthPage() {
           >
             {/* Desktop brand */}
 
-            <div className="mb-6 hidden items-center gap-2.5 text-lg font-bold text-slate-900 md:flex">
+            <div className="mb-6 hidden items-center gap-2.5 text-lg font-bold text-foreground md:flex">
               <div
                 className="
                   flex
@@ -811,11 +811,11 @@ export default function AuthPage() {
             {/* Heading */}
 
             <div className="mb-6">
-              <h1 className="mb-2 text-[28px] font-bold tracking-tight text-slate-900 md:text-[31px]">
+              <h1 className="mb-2 text-[28px] font-bold tracking-tight text-foreground md:text-[31px]">
                 Crie sua conta
               </h1>
 
-              <p className="text-[13px] leading-[1.5] text-slate-500">
+              <p className="text-[13px] leading-[1.5] text-muted">
                 Preencha seus dados para começar.
               </p>
             </div>
@@ -831,13 +831,13 @@ export default function AuthPage() {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="register-name"
-                  className="text-xs font-semibold text-slate-900"
+                  className="text-xs font-semibold text-foreground"
                 >
                   Nome completo
                 </label>
 
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-slate-400">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-muted-light">
                     R
                   </span>
 
@@ -854,15 +854,15 @@ export default function AuthPage() {
                       w-full
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-white
+                      border-app-border
+                      bg-surface
                       pl-[38px]
                       pr-4
                       text-[13px]
-                      text-slate-900
+                      text-foreground
                       outline-none
 
-                      placeholder:text-slate-400
+                      placeholder:text-muted-light
 
                       focus:border-blue-600
                       focus:ring-[3px]
@@ -877,13 +877,13 @@ export default function AuthPage() {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="register-email"
-                  className="text-xs font-semibold text-slate-900"
+                  className="text-xs font-semibold text-foreground"
                 >
                   E-mail
                 </label>
 
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-slate-400">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-light">
                     @
                   </span>
 
@@ -900,15 +900,15 @@ export default function AuthPage() {
                       w-full
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-white
+                      border-app-border
+                      bg-surface
                       pl-[38px]
                       pr-4
                       text-[13px]
-                      text-slate-900
+                      text-foreground
                       outline-none
 
-                      placeholder:text-slate-400
+                      placeholder:text-muted-light
 
                       focus:border-blue-600
                       focus:ring-[3px]
@@ -923,13 +923,13 @@ export default function AuthPage() {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="register-password"
-                  className="text-xs font-semibold text-slate-900"
+                  className="text-xs font-semibold text-foreground"
                 >
                   Senha
                 </label>
 
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-slate-400">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-light">
                     •
                   </span>
 
@@ -948,15 +948,15 @@ export default function AuthPage() {
                       w-full
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-white
+                      border-app-border
+                      bg-surface
                       pl-[38px]
                       pr-[85px]
                       text-[13px]
-                      text-slate-900
+                      text-foreground
                       outline-none
 
-                      placeholder:text-slate-400
+                      placeholder:text-muted-light
 
                       focus:border-blue-600
                       focus:ring-[3px]
@@ -979,7 +979,7 @@ export default function AuthPage() {
                       px-1
                       text-[10px]
                       font-semibold
-                      text-slate-400
+                      text-muted-light
 
                       hover:text-blue-600
                     "
@@ -994,13 +994,13 @@ export default function AuthPage() {
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="confirm-password"
-                  className="text-xs font-semibold text-slate-900"
+                  className="text-xs font-semibold text-foreground"
                 >
                   Confirmar senha
                 </label>
 
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-slate-400">
+                  <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-muted-light">
                     •
                   </span>
 
@@ -1017,15 +1017,15 @@ export default function AuthPage() {
                       w-full
                       rounded-xl
                       border
-                      border-slate-200
-                      bg-white
+                      border-app-border
+                      bg-surface
                       pl-[38px]
                       pr-[85px]
                       text-[13px]
-                      text-slate-900
+                      text-foreground
                       outline-none
 
-                      placeholder:text-slate-400
+                      placeholder:text-muted-light
 
                       focus:border-blue-600
                       focus:ring-[3px]
@@ -1048,7 +1048,7 @@ export default function AuthPage() {
                       px-1
                       text-[10px]
                       font-semibold
-                      text-slate-400
+                      text-muted-light
 
                       hover:text-blue-600
                     "
@@ -1061,7 +1061,7 @@ export default function AuthPage() {
               {/* Requisitos */}
 
               <div>
-                <p className="mb-2 text-[10px] font-semibold text-slate-500">
+                <p className="mb-2 text-[10px] font-semibold text-muted">
                   Requisitos da senha
                 </p>
 
@@ -1076,7 +1076,7 @@ export default function AuthPage() {
                       ${
                         registerPassword.length >= 8
                           ? "text-emerald-500"
-                          : "text-slate-400"
+                          : "text-muted-light"
                       }
                     `}
                   >
@@ -1093,7 +1093,7 @@ export default function AuthPage() {
                       ${
                         /[A-Z]/.test(registerPassword)
                           ? "text-emerald-500"
-                          : "text-slate-400"
+                          : "text-muted-light"
                       }
                     `}
                   >
@@ -1111,7 +1111,7 @@ export default function AuthPage() {
                       ${
                         /[a-z]/.test(registerPassword)
                           ? "text-emerald-500"
-                          : "text-slate-400"
+                          : "text-muted-light"
                       }
                     `}
                   >
@@ -1129,7 +1129,7 @@ export default function AuthPage() {
                       ${
                         /\d/.test(registerPassword)
                           ? "text-emerald-500"
-                          : "text-slate-400"
+                          : "text-muted-light"
                       }
                     `}
                   >
@@ -1171,7 +1171,7 @@ export default function AuthPage() {
 
             {/* Footer */}
 
-            <p className="mt-5 text-center text-[11px] text-slate-500">
+            <p className="mt-5 text-center text-[11px] text-muted">
               Já possui uma conta?
               <button
                 type="button"

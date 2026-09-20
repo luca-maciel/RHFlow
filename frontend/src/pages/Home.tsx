@@ -9,7 +9,7 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -52,7 +52,7 @@ export default function Home() {
                 text-[24px]
                 font-bold
                 tracking-tight
-                text-slate-900
+                text-foreground
 
                 md:text-[28px]
               "
@@ -60,7 +60,7 @@ export default function Home() {
               Bom dia, Lucas 👋
             </h1>
 
-            <p className="mt-1 text-xs text-slate-500 md:text-sm">
+            <p className="mt-1 text-xs text-muted md:text-sm">
               Aqui está um resumo do RH hoje.
             </p>
           </section>
@@ -136,7 +136,7 @@ export default function Home() {
                           className="
                             w-full
                             rounded-t-lg
-                            bg-blue-100
+                            bg-dashboard-surface
 
                             transition-all
 
@@ -188,7 +188,7 @@ export default function Home() {
                         items-center
                         justify-center
                         rounded-xl
-                        bg-blue-50
+                        bg-icon-surface
                         text-sm
                       "
                     >
@@ -196,16 +196,16 @@ export default function Home() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-slate-900">
+                      <p className="truncate text-xs font-semibold text-foreground">
                         {event.title}
                       </p>
 
-                      <p className="mt-0.5 text-[10px] text-slate-400">
+                      <p className="mt-0.5 text-[10px] text-muted-light">
                         {event.subtitle}
                       </p>
                     </div>
 
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-muted-light">
                       {event.badge}
                     </span>
                   </div>

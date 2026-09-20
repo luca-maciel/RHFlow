@@ -2,21 +2,80 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f8fafc;
+
+  --surface: #ffffff;
+  --surface-secondary: #f8fafc;
+  --surface-hover: #f1f5f9;
+
+  --border: #e2e8f0;
+
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --muted-light: #94a3b8;
+
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --icon-surface: #eff6ff;
+  --dashboard-surface: #2563eb;
+}
+
+.dark {
+  --background: #090e17;
+
+  --surface: #111a27;
+  --surface-secondary: #162131;
+  --surface-hover: #1b293b;
+
+  --border: #223044;
+
+  --foreground: #f1f5f9;
+  --muted: #94a3b8;
+  --muted-light: #64748b;
+
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-soft: #172554;
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --dashboard-surface: #163568;
+  --icon-surface: #163568;
+}
+
+@theme inline {
   --font-inter: "Inter", sans-serif;
 
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-primary-light: #eff6ff;
+  --color-background: var(--background);
 
-  --color-navy: #0f172a;
-  --color-background: #f8fafc;
+  --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-surface-hover: var(--surface-hover);
 
-  --color-text: #0f172a;
-  --color-text-secondary: #64748b;
+  --color-app-border: var(--border);
 
-  --color-border: #e2e8f0;
-  --color-success: #10b981;
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-light: var(--muted-light);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-icon-surface: var(--icon-surface);
+  --color-dashboard-surface: var(--dashboard-surface);
 }
 
 html,
@@ -25,7 +84,16 @@ body,
   min-height: 100%;
 }
 
+html {
+  background: var(--background);
+}
+
 body {
   margin: 0;
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-inter);
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
