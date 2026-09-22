@@ -1,561 +1,292 @@
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
+import axios from "axios";
 import Sidebar from "../../components/layout/Sidebar";
 import Header from "../../components/layout/Header";
+import EmployeeModal from "../../components/employees/EmployeeModal";
+import employeeService from "../../services/employeeService";
+import companyService from "../../services/companyService";
+import departmentService from "../../services/departmentService";
+import positionService from "../../services/positionService";
+import type { Employee, EmployeeRequest } from "../../types/employee";
+import type { Company } from "../../types/company";
+import type { Department } from "../../types/department";
+import type { Position } from "../../types/position";
 
-type EmployeeStatus = "ATIVO" | "FÉRIAS" | "AFASTADO" | "INATIVO";
-
-type Employee = {
-  id: string;
-  matricula: string;
-  nome: string;
-  email: string;
-  telefone: string;
-  cpf: string;
-  nascimento: string;
-
-  empresa: string;
-  departamento: string;
-  cargo: string;
-
-  admissao: string;
-  tipoContrato: string;
-  salario: string;
-  gestor: string;
-
-  status: EmployeeStatus;
+const date = (v: string | null) => {
+  if (!v) return "—";
+  const [y, m, d] = v.split("-");
+  return `${d}/${m}/${y}`;
 };
-
-const employeesMock: Employee[] = [
-  {
-    id: "1",
-    matricula: "RH001",
-    nome: "João da Silva",
-    email: "joao@rhflow.com",
-    telefone: "(81) 99999-9999",
-    cpf: "123.456.789-00",
-    nascimento: "18/06/1998",
-
-    empresa: "RHFlow Tecnologia",
-    departamento: "Tecnologia da Informação",
-    cargo: "Desenvolvedor Backend",
-
-    admissao: "10/01/2025",
-    tipoContrato: "CLT",
-    salario: "R$ 5.800,00",
-    gestor: "Carlos Henrique",
-
-    status: "ATIVO",
-  },
-];
-
-function getInitials(name: string) {
-  const parts = name.trim().split(" ");
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
-  return (
-    parts[0][0] +
-    parts[parts.length - 1][0]
-  ).toUpperCase();
-}
-
-function StatusBadge({
-  status,
-}: {
-  status: EmployeeStatus;
-}) {
-  const styles: Record<EmployeeStatus, string> = {
-    ATIVO: "bg-surface-secondary text-emerald-600",
-    FÉRIAS: "bg-surface-secondary text-blue-600",
-    AFASTADO: "bg-surface-secondary text-amber-600",
-    INATIVO: "bg-surface-secondary text-muted",
-  };
-
-  const dots: Record<EmployeeStatus, string> = {
-    ATIVO: "bg-emerald-500",
-    FÉRIAS: "bg-blue-500",
-    AFASTADO: "bg-amber-500",
-    INATIVO: "bg-slate-400",
-  };
-
+const initials = (n: string) => {
+  const a = n.trim().split(/\s+/);
+  return a.length === 1
+    ? a[0].slice(0, 2).toUpperCase()
+    : (a[0][0] + a.at(-1)![0]).toUpperCase();
+};
+function Badge({ s }: { s: string }) {
+  const c =
+    s === "ATIVO"
+      ? "text-emerald-600"
+      : s === "FÉRIAS"
+        ? "text-blue-600"
+        : s === "AFASTADO"
+          ? "text-amber-600"
+          : "text-muted";
   return (
     <span
-      className={`
-        inline-flex
-        items-center
-        gap-1.5
-        rounded-full
-        px-2.5
-        py-1
-        text-[10px]
-        font-semibold
-        ${styles[status]}
-      `}
+      className={`rounded-full bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold ${c}`}
     >
-      <span
-        className={`
-          h-1.5
-          w-1.5
-          rounded-full
-          ${dots[status]}
-        `}
-      />
-
-      {status}
+      {s}
     </span>
   );
 }
-
-type InfoItemProps = {
-  label: string;
-  value: string;
-};
-
-function InfoItem({
-  label,
-  value,
-}: InfoItemProps) {
+export default function EmployeeDetails() {
+  const nav = useNavigate(),
+    { id } = useParams();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [employee, setEmployee] = useState<Employee | null>(null),
+    [companies, setCompanies] = useState<Company[]>([]),
+    [departments, setDepartments] = useState<Department[]>([]),
+    [positions, setPositions] = useState<Position[]>([]);
+  const [loading, setLoading] = useState(true),
+    [saving, setSaving] = useState(false),
+    [error, setError] = useState(""),
+    [modal, setModal] = useState(false),
+    [term, setTerm] = useState(false),
+    [termDate, setTermDate] = useState("");
+  async function load() {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const [e, c, d, p] = await Promise.all([
+        employeeService.findById(id),
+        companyService.findAll(),
+        departmentService.findAll(),
+        positionService.findAll(),
+      ]);
+      setEmployee(e);
+      setCompanies(c);
+      setDepartments(d);
+      setPositions(p);
+    } catch (e) {
+      console.error(e);
+      setError("Não foi possível carregar o funcionário.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, [id]);
+  const msg = (e: unknown, f: string) => {
+    if (!axios.isAxiosError(e)) return f;
+    return e.response?.data?.message ?? e.response?.data?.error ?? f;
+  };
+  async function save(data: EmployeeRequest) {
+    if (!id) return;
+    try {
+      setSaving(true);
+      setError("");
+      setEmployee(await employeeService.update(id, data));
+      setModal(false);
+    } catch (e) {
+      setError(msg(e, "Não foi possível atualizar o funcionário."));
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function terminate() {
+    if (!id || !termDate) return;
+    try {
+      setSaving(true);
+      setError("");
+      setEmployee(
+        await employeeService.terminate(id, { dataDemissao: termDate }),
+      );
+      setTerm(false);
+      setTermDate("");
+    } catch (e) {
+      setError(msg(e, "Não foi possível desligar o funcionário."));
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <div className="min-h-screen bg-background">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Header onMenuClick={() => setSidebarOpen(true)} />
+      <main className="min-h-screen pt-[72px] md:ml-[250px] md:pt-[82px]">
+        <div className="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8">
+          <button
+            onClick={() => nav("/funcionarios")}
+            className="mb-5 text-xs font-semibold text-muted hover:text-primary"
+          >
+            ← Voltar para funcionários
+          </button>
+          {loading ? (
+            <div className="rounded-2xl border border-app-border bg-surface p-12 text-center text-xs text-muted">
+              Carregando...
+            </div>
+          ) : !employee ? (
+            <div className="text-xs text-danger">
+              {error || "Funcionário não encontrado."}
+            </div>
+          ) : (
+            <>
+              {error && (
+                <div className="mb-5 rounded-xl bg-red-500/10 p-4 text-xs text-danger">
+                  {error}
+                </div>
+              )}
+              <section className="mb-6 rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
+                <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-icon-surface text-xl font-bold text-primary">
+                      {initials(employee.nome)}
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-2xl font-bold text-foreground">
+                          {employee.nome}
+                        </h1>
+                        <Badge s={employee.status} />
+                      </div>
+                      <p className="mt-1 text-xs text-muted">
+                        {employee.cargoNome}
+                      </p>
+                      <p className="mt-1 text-[10px] text-muted-light">
+                        CPF {employee.cpf}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {employee.ativo && employee.status !== "DESLIGADO" && (
+                      <button
+                        onClick={() => setTerm(true)}
+                        className="rounded-xl border border-app-border px-4 py-2.5 text-xs font-semibold text-muted"
+                      >
+                        Desligar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setModal(true)}
+                      className="rounded-xl bg-primary px-5 py-2.5 text-xs font-semibold text-white"
+                    >
+                      Editar funcionário
+                    </button>
+                  </div>
+                </div>
+              </section>
+              <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <Summary l="Empresa" v={employee.empresaNome} />
+                <Summary l="Departamento" v={employee.departamentoNome} />
+                <Summary l="Cargo" v={employee.cargoNome} />
+                <Summary l="Admissão" v={date(employee.dataAdmissao)} />
+              </section>
+              <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <Card title="Dados pessoais">
+                  <Info l="Nome completo" v={employee.nome} />
+                  <Info l="CPF" v={employee.cpf} />
+                  <Info l="RG" v={employee.rg || "—"} />
+                  <Info l="E-mail" v={employee.email || "—"} />
+                  <Info l="Telefone" v={employee.telefone || "—"} />
+                  <Info l="Nascimento" v={date(employee.dataNascimento)} />
+                </Card>
+                <Card title="Dados profissionais">
+                  <Info l="Empresa" v={employee.empresaNome} />
+                  <Info l="Departamento" v={employee.departamentoNome} />
+                  <Info l="Cargo" v={employee.cargoNome} />
+                  <Info l="Admissão" v={date(employee.dataAdmissao)} />
+                  <Info l="Desligamento" v={date(employee.dataDemissao)} />
+                  <div>
+                    <p className="text-[10px] uppercase text-muted-light">
+                      Status
+                    </p>
+                    <div className="mt-2">
+                      <Badge s={employee.status} />
+                    </div>
+                  </div>
+                </Card>
+              </section>
+            </>
+          )}
+        </div>
+      </main>
+      {employee && (
+        <EmployeeModal
+          isOpen={modal}
+          employee={employee}
+          companies={companies}
+          departments={departments}
+          positions={positions}
+          loading={saving}
+          onClose={() => !saving && setModal(false)}
+          onSubmit={save}
+        />
+      )}
+      {term && employee && (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/50 sm:items-center sm:p-6">
+          <div className="w-full rounded-t-3xl border border-app-border bg-surface p-6 sm:max-w-[460px] sm:rounded-2xl">
+            <h2 className="text-base font-bold text-foreground">
+              Desligar funcionário
+            </h2>
+            <p className="mt-1 text-xs text-muted">
+              Informe a data de desligamento de {employee.nome}.
+            </p>
+            <input
+              type="date"
+              min={employee.dataAdmissao}
+              value={termDate}
+              onChange={(e) => setTermDate(e.target.value)}
+              className="mt-5 h-11 w-full rounded-xl border border-app-border bg-surface-secondary px-3 text-xs text-foreground"
+            />
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setTerm(false)}
+                className="h-11 rounded-xl border border-app-border px-5 text-xs text-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={terminate}
+                disabled={!termDate || saving}
+                className="h-11 rounded-xl bg-danger px-5 text-xs font-semibold text-white disabled:opacity-50"
+              >
+                {saving ? "Desligando..." : "Confirmar desligamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function Summary({ l, v }: { l: string; v: string }) {
+  return (
+    <div className="rounded-2xl border border-app-border bg-surface p-5">
+      <p className="text-[10px] uppercase text-muted-light">{l}</p>
+      <p className="mt-2 text-xs font-semibold text-foreground">{v}</p>
+    </div>
+  );
+}
+function Info({ l, v }: { l: string; v: string }) {
   return (
     <div>
-      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
-        {label}
-      </p>
-
-      <p className="mt-1 text-xs font-medium text-foreground">
-        {value}
+      <p className="text-[10px] uppercase text-muted-light">{l}</p>
+      <p className="mt-1 break-words text-xs font-medium text-foreground">
+        {v}
       </p>
     </div>
   );
 }
-
-export default function EmployeeDetails() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const navigate = useNavigate();
-  const { id } = useParams();
-
-  const employee =
-    employeesMock.find(
-      (item) => item.id === id
-    ) ?? employeesMock[0];
-
+function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() =>
-          setSidebarOpen(false)
-        }
-      />
-
-      <Header
-        onMenuClick={() =>
-          setSidebarOpen(true)
-        }
-      />
-
-      <main className="min-h-screen pt-[72px] md:ml-[250px] md:pt-[82px]">
-        <div className="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8">
-          {/* VOLTAR */}
-
-          <button
-            type="button"
-            onClick={() =>
-              navigate("/funcionarios")
-            }
-            className="
-              mb-5
-              flex
-              items-center
-              gap-2
-              text-xs
-              font-semibold
-              text-muted
-              transition
-              hover:text-blue-600
-            "
-          >
-            ←
-            Voltar para funcionários
-          </button>
-
-          {/* CABEÇALHO */}
-
-          <section
-            className="
-              mb-6
-              rounded-2xl
-              border
-              border-app-border
-              bg-surface
-              p-5
-
-              sm:p-6
-            "
-          >
-            <div
-              className="
-                flex
-                flex-col
-                gap-5
-
-                md:flex-row
-                md:items-center
-                md:justify-between
-              "
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className="
-                    flex
-                    h-16
-                    w-16
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-icon-surface
-                    text-base
-                    font-bold
-                    text-foreground
-
-                    sm:h-20
-                    sm:w-20
-                    sm:text-xl
-                  "
-                >
-                  {getInitials(employee.nome)}
-                </div>
-
-                <div className="min-w-0">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                    <h1
-                      className="
-                        text-xl
-                        font-bold
-                        tracking-tight
-                        text-foreground
-
-                        sm:text-2xl
-                      "
-                    >
-                      {employee.nome}
-                    </h1>
-
-                    <StatusBadge
-                      status={employee.status}
-                    />
-                  </div>
-
-                  <p className="text-xs text-muted">
-                    {employee.cargo}
-                  </p>
-
-                  <p className="mt-1 text-[10px] text-muted-light">
-                    Matrícula {employee.matricula}
-                  </p>
-                </div>
-              </div>
-
-              {/* AÇÕES */}
-
-              <div
-                className="
-                  flex
-                  w-full
-                  gap-2
-
-                  md:w-auto
-                "
-              >
-                <button
-                  type="button"
-                  className="
-                    flex-1
-                    rounded-xl
-                    border
-                    border-app-border
-                    px-4
-                    py-2.5
-                    text-xs
-                    font-semibold
-                    text-muted
-                    transition
-                    hover:bg-background
-
-                    md:flex-none
-                  "
-                >
-                  Desativar
-                </button>
-
-                <button
-                  type="button"
-                  className="
-                    flex-1
-                    rounded-xl
-                    bg-blue-600
-                    px-5
-                    py-2.5
-                    text-xs
-                    font-semibold
-                    text-white
-                    shadow-[0_6px_15px_rgba(37,99,235,0.18)]
-                    transition
-                    hover:bg-blue-700
-
-                    md:flex-none
-                  "
-                >
-                  Editar funcionário
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* RESUMO */}
-
-          <section
-            className="
-              mb-6
-              grid
-              grid-cols-1
-              gap-4
-
-              sm:grid-cols-2
-              xl:grid-cols-4
-            "
-          >
-            <div className="rounded-2xl border border-app-border bg-surface p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
-                Empresa
-              </p>
-
-              <p className="mt-2 text-xs font-semibold text-foreground">
-                {employee.empresa}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-app-border bg-surface p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
-                Departamento
-              </p>
-
-              <p className="mt-2 text-xs font-semibold text-foreground">
-                {employee.departamento}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-app-border bg-surface p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
-                Cargo
-              </p>
-
-              <p className="mt-2 text-xs font-semibold text-foreground">
-                {employee.cargo}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-app-border bg-surface p-5">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
-                Admissão
-              </p>
-
-              <p className="mt-2 text-xs font-semibold text-foreground">
-                {employee.admissao}
-              </p>
-            </div>
-          </section>
-
-          {/* CONTEÚDO */}
-
-          <section
-            className="
-              grid
-              grid-cols-1
-              gap-6
-
-              xl:grid-cols-[1.1fr_1fr]
-            "
-          >
-            {/* DADOS PESSOAIS */}
-
-            <div className="rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
-              <div className="mb-6">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Dados pessoais
-                </h2>
-
-                <p className="mt-1 text-[10px] text-muted-light">
-                  Informações pessoais e de contato.
-                </p>
-              </div>
-
-              <div
-                className="
-                  grid
-                  grid-cols-1
-                  gap-x-8
-                  gap-y-6
-
-                  sm:grid-cols-2
-                "
-              >
-                <InfoItem
-                  label="Nome completo"
-                  value={employee.nome}
-                />
-
-                <InfoItem
-                  label="CPF"
-                  value={employee.cpf}
-                />
-
-                <InfoItem
-                  label="E-mail"
-                  value={employee.email}
-                />
-
-                <InfoItem
-                  label="Telefone"
-                  value={employee.telefone}
-                />
-
-                <InfoItem
-                  label="Data de nascimento"
-                  value={employee.nascimento}
-                />
-
-                <InfoItem
-                  label="Matrícula"
-                  value={employee.matricula}
-                />
-              </div>
-            </div>
-
-            {/* DADOS PROFISSIONAIS */}
-
-            <div className="rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
-              <div className="mb-6">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Dados profissionais
-                </h2>
-
-                <p className="mt-1 text-[10px] text-muted-light">
-                  Informações do vínculo com a empresa.
-                </p>
-              </div>
-
-              <div
-                className="
-                  grid
-                  grid-cols-1
-                  gap-x-8
-                  gap-y-6
-
-                  sm:grid-cols-2
-                "
-              >
-                <InfoItem
-                  label="Empresa"
-                  value={employee.empresa}
-                />
-
-                <InfoItem
-                  label="Departamento"
-                  value={employee.departamento}
-                />
-
-                <InfoItem
-                  label="Cargo"
-                  value={employee.cargo}
-                />
-
-                <InfoItem
-                  label="Gestor"
-                  value={employee.gestor}
-                />
-
-                <InfoItem
-                  label="Data de admissão"
-                  value={employee.admissao}
-                />
-
-                <InfoItem
-                  label="Tipo de contrato"
-                  value={employee.tipoContrato}
-                />
-
-                <InfoItem
-                  label="Salário"
-                  value={employee.salario}
-                />
-
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-muted-light">
-                    Status
-                  </p>
-
-                  <div className="mt-1.5">
-                    <StatusBadge
-                      status={employee.status}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* HISTÓRICO */}
-
-          <section className="mt-6 rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
-            <div className="mb-6">
-              <h2 className="text-sm font-semibold text-foreground">
-                Histórico
-              </h2>
-
-              <p className="mt-1 text-[10px] text-muted-light">
-                Últimas movimentações do funcionário.
-              </p>
-            </div>
-
-            <div className="space-y-5">
-              <div className="flex gap-3">
-                <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
-
-                <div>
-                  <p className="text-xs font-semibold text-foreground">
-                    Funcionário admitido
-                  </p>
-
-                  <p className="mt-1 text-[10px] text-muted-light">
-                    Admitido como Desenvolvedor Backend em{" "}
-                    {employee.admissao}.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-
-                <div>
-                  <p className="text-xs font-semibold text-foreground">
-                    Cadastro atualizado
-                  </p>
-
-                  <p className="mt-1 text-[10px] text-muted-light">
-                    Informações profissionais atualizadas recentemente.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
+    <div className="rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
+      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+        {children}
+      </div>
     </div>
   );
 }
