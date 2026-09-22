@@ -61,6 +61,14 @@ public class DepartamentoController {
         );
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<DepartamentoResponse> atualizar(
+                    @PathVariable UUID id,
+                    @Valid @RequestBody DepartamentoRequest request) {
+            return ResponseEntity.ok(
+                            departamentoService.atualizar(id, request));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> desativar(
             @PathVariable UUID id

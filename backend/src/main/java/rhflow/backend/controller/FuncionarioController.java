@@ -16,80 +16,75 @@ import java.util.UUID;
 @RequestMapping("/funcionarios")
 public class FuncionarioController {
 
-    private final FuncionarioService funcionarioService;
+        private final FuncionarioService funcionarioService;
 
-    public FuncionarioController(
-            FuncionarioService funcionarioService
-    ) {
-        this.funcionarioService = funcionarioService;
-    }
+        public FuncionarioController(
+                        FuncionarioService funcionarioService) {
+                this.funcionarioService = funcionarioService;
+        }
 
-    @PostMapping
-    public ResponseEntity<FuncionarioResponse> criar(
-            @Valid @RequestBody FuncionarioRequest request
-    ) {
+        @PostMapping
+        public ResponseEntity<FuncionarioResponse> criar(
+                        @Valid @RequestBody FuncionarioRequest request) {
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(funcionarioService.criar(request));
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(funcionarioService.criar(request));
+        }
 
-    @GetMapping
-    public ResponseEntity<List<FuncionarioResponse>> listarTodos() {
+        @GetMapping
+        public ResponseEntity<List<FuncionarioResponse>> listarTodos() {
 
-        return ResponseEntity.ok(
-                funcionarioService.listarTodos()
-        );
-    }
+                return ResponseEntity.ok(
+                                funcionarioService.listarTodos());
+        }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<FuncionarioResponse> buscarPorId(
-            @PathVariable UUID id
-    ) {
+        @GetMapping("/{id}")
+        public ResponseEntity<FuncionarioResponse> buscarPorId(
+                        @PathVariable UUID id) {
 
-        return ResponseEntity.ok(
-                funcionarioService.buscarPorId(id)
-        );
-    }
+                return ResponseEntity.ok(
+                                funcionarioService.buscarPorId(id));
+        }
 
-    @GetMapping("/cargo/{cargoId}")
-    public ResponseEntity<List<FuncionarioResponse>> listarPorCargo(
-            @PathVariable UUID cargoId
-    ) {
+        @GetMapping("/cargo/{cargoId}")
+        public ResponseEntity<List<FuncionarioResponse>> listarPorCargo(
+                        @PathVariable UUID cargoId) {
 
-        return ResponseEntity.ok(
-                funcionarioService.listarPorCargo(cargoId)
-        );
-    }
+                return ResponseEntity.ok(
+                                funcionarioService.listarPorCargo(cargoId));
+        }
 
-    @GetMapping("/departamento/{departamentoId}")
-    public ResponseEntity<List<FuncionarioResponse>> listarPorDepartamento(
-            @PathVariable UUID departamentoId
-    ) {
+        @GetMapping("/departamento/{departamentoId}")
+        public ResponseEntity<List<FuncionarioResponse>> listarPorDepartamento(
+                        @PathVariable UUID departamentoId) {
 
-        return ResponseEntity.ok(
-                funcionarioService.listarPorDepartamento(departamentoId)
-        );
-    }
+                return ResponseEntity.ok(
+                                funcionarioService.listarPorDepartamento(departamentoId));
+        }
 
-    @GetMapping("/empresa/{empresaId}")
-    public ResponseEntity<List<FuncionarioResponse>> listarPorEmpresa(
-            @PathVariable UUID empresaId
-    ) {
+        @GetMapping("/empresa/{empresaId}")
+        public ResponseEntity<List<FuncionarioResponse>> listarPorEmpresa(
+                        @PathVariable UUID empresaId) {
 
-        return ResponseEntity.ok(
-                funcionarioService.listarPorEmpresa(empresaId)
-        );
-    }
+                return ResponseEntity.ok(
+                                funcionarioService.listarPorEmpresa(empresaId));
+        }
 
-    @PatchMapping("/{id}/desligar")
-    public ResponseEntity<FuncionarioResponse> desligar(
-            @PathVariable UUID id,
-            @Valid @RequestBody DesligamentoFuncionarioRequest request
-    ) {
+        @PutMapping("/{id}")
+        public ResponseEntity<FuncionarioResponse> atualizar(
+                        @PathVariable UUID id,
+                        @Valid @RequestBody FuncionarioRequest request) {
+                return ResponseEntity.ok(
+                                funcionarioService.atualizar(id, request));
+        }
 
-        return ResponseEntity.ok(
-                funcionarioService.desligar(id, request)
-        );
-    }
+        @PatchMapping("/{id}/desligar")
+        public ResponseEntity<FuncionarioResponse> desligar(
+                        @PathVariable UUID id,
+                        @Valid @RequestBody DesligamentoFuncionarioRequest request) {
+
+                return ResponseEntity.ok(
+                                funcionarioService.desligar(id, request));
+        }
 }

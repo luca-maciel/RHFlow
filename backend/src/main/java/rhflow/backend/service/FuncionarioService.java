@@ -1,6 +1,8 @@
 package rhflow.backend.service;
 
 import org.springframework.stereotype.Service;
+
+import jakarta.transaction.Transactional;
 import rhflow.backend.dto.DesligamentoFuncionarioRequest;
 import rhflow.backend.dto.FuncionarioRequest;
 import rhflow.backend.dto.FuncionarioResponse;
@@ -16,243 +18,254 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class FuncionarioService {
 
-    private final FuncionarioRepository funcionarioRepository;
-    private final CargoRepository cargoRepository;
+        private final FuncionarioRepository funcionarioRepository;
+        private final CargoRepository cargoRepository;
 
-    public FuncionarioService(
-            FuncionarioRepository funcionarioRepository,
-            CargoRepository cargoRepository
-    ) {
-        this.funcionarioRepository = funcionarioRepository;
-        this.cargoRepository = cargoRepository;
-    }
-
-    public FuncionarioResponse criar(FuncionarioRequest request) {
-
-        Cargo cargo = buscarCargo(request.getCargoId());
-
-        validarCargo(cargo);
-
-        if (funcionarioRepository.existsByCpf(request.getCpf())) {
-            throw new BusinessException(
-                    "Já existe um funcionário cadastrado com esse CPF."
-            );
+        public FuncionarioService(
+                        FuncionarioRepository funcionarioRepository,
+                        CargoRepository cargoRepository) {
+                this.funcionarioRepository = funcionarioRepository;
+                this.cargoRepository = cargoRepository;
         }
 
-        Funcionario funcionario = new Funcionario();
+        public FuncionarioResponse criar(FuncionarioRequest request) {
 
-        funcionario.setCargo(cargo);
-        funcionario.setNome(request.getNome());
-        funcionario.setCpf(request.getCpf());
-        funcionario.setRg(request.getRg());
-        funcionario.setDataNascimento(request.getDataNascimento());
-        funcionario.setEmail(request.getEmail());
-        funcionario.setTelefone(request.getTelefone());
-        funcionario.setDataAdmissao(request.getDataAdmissao());
+                Cargo cargo = buscarCargo(request.getCargoId());
 
-        if (request.getStatus() != null) {
-            funcionario.setStatus(request.getStatus());
+                validarCargo(cargo);
+
+                if (funcionarioRepository.existsByCpf(request.getCpf())) {
+                        throw new BusinessException(
+                                        "Já existe um funcionário cadastrado com esse CPF.");
+                }
+
+                Funcionario funcionario = new Funcionario();
+
+                funcionario.setCargo(cargo);
+                funcionario.setNome(request.getNome());
+                funcionario.setCpf(request.getCpf());
+                funcionario.setRg(request.getRg());
+                funcionario.setDataNascimento(request.getDataNascimento());
+                funcionario.setEmail(request.getEmail());
+                funcionario.setTelefone(request.getTelefone());
+                funcionario.setDataAdmissao(request.getDataAdmissao());
+
+                if (request.getStatus() != null) {
+                        funcionario.setStatus(request.getStatus());
+                }
+
+                return toResponse(
+                                funcionarioRepository.save(funcionario));
         }
 
-        return toResponse(
-                funcionarioRepository.save(funcionario)
-        );
-    }
+        @Transactional
+        public List<FuncionarioResponse> listarTodos() {
 
-    public List<FuncionarioResponse> listarTodos() {
-
-        return funcionarioRepository
-                .findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public FuncionarioResponse buscarPorId(UUID id) {
-        return toResponse(buscarFuncionario(id));
-    }
-
-    public List<FuncionarioResponse> listarPorCargo(UUID cargoId) {
-
-        buscarCargo(cargoId);
-
-        return funcionarioRepository
-                .findByCargoId(cargoId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public List<FuncionarioResponse> listarPorDepartamento(
-            UUID departamentoId
-    ) {
-
-        return funcionarioRepository
-                .findByCargoDepartamentoId(departamentoId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public List<FuncionarioResponse> listarPorEmpresa(
-            UUID empresaId
-    ) {
-
-        return funcionarioRepository
-                .findByCargoDepartamentoEmpresaId(empresaId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public FuncionarioResponse desligar(
-            UUID id,
-            DesligamentoFuncionarioRequest request
-    ) {
-
-        Funcionario funcionario = buscarFuncionario(id);
-
-        if (funcionario.getStatus() == StatusFuncionario.DESLIGADO) {
-            throw new BusinessException(
-                    "O funcionário já está desligado."
-            );
+                return funcionarioRepository
+                                .findAll()
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
         }
 
-        if (
-            request.getDataDemissao()
-                    .isBefore(funcionario.getDataAdmissao())
-        ) {
-            throw new BusinessException(
-                    "A data de desligamento não pode ser anterior à data de admissão."
-            );
+        @Transactional
+        public FuncionarioResponse buscarPorId(UUID id) {
+                return toResponse(buscarFuncionario(id));
         }
 
-        funcionario.setDataDemissao(request.getDataDemissao());
-        funcionario.setStatus(StatusFuncionario.DESLIGADO);
-        funcionario.setAtivo(false);
+        @Transactional
+        public List<FuncionarioResponse> listarPorCargo(UUID cargoId) {
 
-        return toResponse(
-                funcionarioRepository.save(funcionario)
-        );
-    }
+                buscarCargo(cargoId);
 
-    private void validarCargo(Cargo cargo) {
-
-        if (!cargo.isAtivo()) {
-            throw new BusinessException(
-                    "Não é possível vincular o funcionário a um cargo inativo."
-            );
+                return funcionarioRepository
+                                .findByCargoId(cargoId)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
         }
 
-        if (!cargo.getDepartamento().isAtivo()) {
-            throw new BusinessException(
-                    "O departamento deste cargo está inativo."
-            );
+        @Transactional
+        public List<FuncionarioResponse> listarPorDepartamento(
+                        UUID departamentoId) {
+
+                return funcionarioRepository
+                                .findByCargoDepartamentoId(departamentoId)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
         }
 
-        if (!cargo.getDepartamento().getEmpresa().isAtivo()) {
-            throw new BusinessException(
-                    "A empresa deste cargo está inativa."
-            );
+        @Transactional
+        public List<FuncionarioResponse> listarPorEmpresa(
+                        UUID empresaId) {
+
+                return funcionarioRepository
+                                .findByCargoDepartamentoEmpresaId(empresaId)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
         }
-    }
 
-    private Cargo buscarCargo(UUID id) {
+        @Transactional
+        public FuncionarioResponse desligar(
+                        UUID id,
+                        DesligamentoFuncionarioRequest request) {
 
-        return cargoRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Cargo não encontrado."
-                        )
-                );
-    }
+                Funcionario funcionario = buscarFuncionario(id);
 
-    private Funcionario buscarFuncionario(UUID id) {
+                if (funcionario.getStatus() == StatusFuncionario.DESLIGADO) {
+                        throw new BusinessException(
+                                        "O funcionário já está desligado.");
+                }
 
-        return funcionarioRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Funcionário não encontrado."
-                        )
-                );
-    }
+                if (request.getDataDemissao()
+                                .isBefore(funcionario.getDataAdmissao())) {
+                        throw new BusinessException(
+                                        "A data de desligamento não pode ser anterior à data de admissão.");
+                }
 
-    private FuncionarioResponse toResponse(
-            Funcionario funcionario
-    ) {
+                funcionario.setDataDemissao(request.getDataDemissao());
+                funcionario.setStatus(StatusFuncionario.DESLIGADO);
+                funcionario.setAtivo(false);
 
-        FuncionarioResponse response =
-                new FuncionarioResponse();
+                return toResponse(
+                                funcionarioRepository.save(funcionario));
+        }
 
-        response.setId(funcionario.getId());
+        private void validarCargo(Cargo cargo) {
 
-        response.setCargoId(
-                funcionario.getCargo().getId()
-        );
+                if (!cargo.isAtivo()) {
+                        throw new BusinessException(
+                                        "Não é possível vincular o funcionário a um cargo inativo.");
+                }
 
-        response.setCargoNome(
-                funcionario.getCargo().getNome()
-        );
+                if (!cargo.getDepartamento().isAtivo()) {
+                        throw new BusinessException(
+                                        "O departamento deste cargo está inativo.");
+                }
 
-        response.setDepartamentoId(
-                funcionario
-                        .getCargo()
-                        .getDepartamento()
-                        .getId()
-        );
+                if (!cargo.getDepartamento().getEmpresa().isAtivo()) {
+                        throw new BusinessException(
+                                        "A empresa deste cargo está inativa.");
+                }
+        }
 
-        response.setDepartamentoNome(
-                funcionario
-                        .getCargo()
-                        .getDepartamento()
-                        .getNome()
-        );
+        @Transactional
+        private Cargo buscarCargo(UUID id) {
 
-        response.setEmpresaId(
-                funcionario
-                        .getCargo()
-                        .getDepartamento()
-                        .getEmpresa()
-                        .getId()
-        );
+                return cargoRepository
+                                .findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Cargo não encontrado."));
+        }
 
-        response.setEmpresaNome(
-                funcionario
-                        .getCargo()
-                        .getDepartamento()
-                        .getEmpresa()
-                        .getNome()
-        );
+        @Transactional
+        private Funcionario buscarFuncionario(UUID id) {
 
-        response.setNome(funcionario.getNome());
-        response.setCpf(funcionario.getCpf());
-        response.setRg(funcionario.getRg());
+                return funcionarioRepository
+                                .findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Funcionário não encontrado."));
+        }
 
-        response.setDataNascimento(
-                funcionario.getDataNascimento()
-        );
+        private FuncionarioResponse toResponse(
+                        Funcionario funcionario) {
 
-        response.setEmail(funcionario.getEmail());
-        response.setTelefone(funcionario.getTelefone());
+                FuncionarioResponse response = new FuncionarioResponse();
 
-        response.setDataAdmissao(
-                funcionario.getDataAdmissao()
-        );
+                response.setId(funcionario.getId());
 
-        response.setDataDemissao(
-                funcionario.getDataDemissao()
-        );
+                response.setCargoId(
+                                funcionario.getCargo().getId());
 
-        response.setStatus(funcionario.getStatus());
-        response.setAtivo(funcionario.isAtivo());
+                response.setCargoNome(
+                                funcionario.getCargo().getNome());
 
-        response.setCreatedAt(funcionario.getCreatedAt());
-        response.setUpdatedAt(funcionario.getUpdatedAt());
+                response.setDepartamentoId(
+                                funcionario
+                                                .getCargo()
+                                                .getDepartamento()
+                                                .getId());
 
-        return response;
-    }
+                response.setDepartamentoNome(
+                                funcionario
+                                                .getCargo()
+                                                .getDepartamento()
+                                                .getNome());
+
+                response.setEmpresaId(
+                                funcionario
+                                                .getCargo()
+                                                .getDepartamento()
+                                                .getEmpresa()
+                                                .getId());
+
+                response.setEmpresaNome(
+                                funcionario
+                                                .getCargo()
+                                                .getDepartamento()
+                                                .getEmpresa()
+                                                .getNome());
+
+                response.setNome(funcionario.getNome());
+                response.setCpf(funcionario.getCpf());
+                response.setRg(funcionario.getRg());
+
+                response.setDataNascimento(
+                                funcionario.getDataNascimento());
+
+                response.setEmail(funcionario.getEmail());
+                response.setTelefone(funcionario.getTelefone());
+
+                response.setDataAdmissao(
+                                funcionario.getDataAdmissao());
+
+                response.setDataDemissao(
+                                funcionario.getDataDemissao());
+
+                response.setStatus(funcionario.getStatus());
+                response.setAtivo(funcionario.isAtivo());
+
+                response.setCreatedAt(funcionario.getCreatedAt());
+                response.setUpdatedAt(funcionario.getUpdatedAt());
+
+                return response;
+        }
+
+        public FuncionarioResponse atualizar(
+                        UUID id,
+                        FuncionarioRequest request) {
+                Funcionario funcionario = buscarFuncionario(id);
+
+                Cargo cargo = buscarCargo(request.getCargoId());
+
+                validarCargo(cargo);
+
+                if (funcionarioRepository.existsByCpfAndIdNot(
+                                request.getCpf(),
+                                id)) {
+                        throw new BusinessException(
+                                        "Já existe um funcionário cadastrado com esse CPF.");
+                }
+
+                funcionario.setCargo(cargo);
+                funcionario.setNome(request.getNome());
+                funcionario.setCpf(request.getCpf());
+                funcionario.setRg(request.getRg());
+                funcionario.setDataNascimento(request.getDataNascimento());
+                funcionario.setEmail(request.getEmail());
+                funcionario.setTelefone(request.getTelefone());
+                funcionario.setDataAdmissao(request.getDataAdmissao());
+
+                if (request.getStatus() != null) {
+                        funcionario.setStatus(request.getStatus());
+                }
+
+                return toResponse(
+                                funcionarioRepository.save(funcionario));
+        }
 }

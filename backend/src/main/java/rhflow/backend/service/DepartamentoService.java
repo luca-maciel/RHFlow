@@ -1,6 +1,8 @@
 package rhflow.backend.service;
 
 import org.springframework.stereotype.Service;
+
+import jakarta.transaction.Transactional;
 import rhflow.backend.dto.DepartamentoRequest;
 import rhflow.backend.dto.DepartamentoResponse;
 import rhflow.backend.entity.postgresql.Departamento;
@@ -14,130 +16,155 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class DepartamentoService {
 
-    private final DepartamentoRepository departamentoRepository;
-    private final EmpresaRepository empresaRepository;
+        private final DepartamentoRepository departamentoRepository;
+        private final EmpresaRepository empresaRepository;
 
-    public DepartamentoService(
-            DepartamentoRepository departamentoRepository,
-            EmpresaRepository empresaRepository
-    ) {
-        this.departamentoRepository = departamentoRepository;
-        this.empresaRepository = empresaRepository;
-    }
-
-    public DepartamentoResponse criar(DepartamentoRequest request) {
-
-        Empresa empresa = buscarEmpresa(request.getEmpresaId());
-
-        if (!empresa.isAtivo()) {
-            throw new BusinessException(
-                    "Não é possível cadastrar um departamento em uma empresa inativa."
-            );
+        public DepartamentoService(
+                        DepartamentoRepository departamentoRepository,
+                        EmpresaRepository empresaRepository) {
+                this.departamentoRepository = departamentoRepository;
+                this.empresaRepository = empresaRepository;
         }
 
-        if (departamentoRepository.existsByEmpresaIdAndNomeIgnoreCase(
-                empresa.getId(),
-                request.getNome()
-        )) {
-            throw new BusinessException(
-                    "Já existe um departamento com esse nome nesta empresa."
-            );
+        public DepartamentoResponse criar(DepartamentoRequest request) {
+
+                Empresa empresa = buscarEmpresa(request.getEmpresaId());
+
+                if (!empresa.isAtivo()) {
+                        throw new BusinessException(
+                                        "Não é possível cadastrar um departamento em uma empresa inativa.");
+                }
+
+                if (departamentoRepository.existsByEmpresaIdAndNomeIgnoreCase(
+                                empresa.getId(),
+                                request.getNome())) {
+                        throw new BusinessException(
+                                        "Já existe um departamento com esse nome nesta empresa.");
+                }
+
+                Departamento departamento = new Departamento();
+
+                departamento.setEmpresa(empresa);
+                departamento.setNome(request.getNome());
+                departamento.setDescricao(request.getDescricao());
+
+                return toResponse(
+                                departamentoRepository.save(departamento));
         }
 
-        Departamento departamento = new Departamento();
+        @Transactional
+        public List<DepartamentoResponse> listarTodos() {
 
-        departamento.setEmpresa(empresa);
-        departamento.setNome(request.getNome());
-        departamento.setDescricao(request.getDescricao());
+                return departamentoRepository
+                                .findAll()
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
+        }
 
-        return toResponse(
-                departamentoRepository.save(departamento)
-        );
-    }
+        @Transactional
+        public List<DepartamentoResponse> listarPorEmpresa(UUID empresaId) {
 
-    public List<DepartamentoResponse> listarTodos() {
+                buscarEmpresa(empresaId);
 
-        return departamentoRepository
-                .findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
+                return departamentoRepository
+                                .findByEmpresaId(empresaId)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
+        }
 
-    public List<DepartamentoResponse> listarPorEmpresa(UUID empresaId) {
+        @Transactional
+        public DepartamentoResponse buscarPorId(UUID id) {
 
-        buscarEmpresa(empresaId);
+                return toResponse(buscarDepartamento(id));
+        }
 
-        return departamentoRepository
-                .findByEmpresaId(empresaId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
+        @Transactional
+        public void desativar(UUID id) {
 
-    public DepartamentoResponse buscarPorId(UUID id) {
+                Departamento departamento = buscarDepartamento(id);
 
-        return toResponse(buscarDepartamento(id));
-    }
+                departamento.setAtivo(false);
 
-    public void desativar(UUID id) {
+                departamentoRepository.save(departamento);
+        }
 
-        Departamento departamento = buscarDepartamento(id);
 
-        departamento.setAtivo(false);
+        private Empresa buscarEmpresa(UUID id) {
 
-        departamentoRepository.save(departamento);
-    }
+                return empresaRepository
+                                .findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Empresa não encontrada."));
+        }
 
-    private Empresa buscarEmpresa(UUID id) {
+        private Departamento buscarDepartamento(UUID id) {
 
-        return empresaRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Empresa não encontrada."
-                        )
-                );
-    }
+                return departamentoRepository
+                                .findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Departamento não encontrado."));
+        }
+ 
+        public DepartamentoResponse atualizar(
+                        UUID id,
+                        DepartamentoRequest request) {
+                Departamento departamento = buscarDepartamento(id);
 
-    private Departamento buscarDepartamento(UUID id) {
+                Empresa empresa = buscarEmpresa(request.getEmpresaId());
 
-        return departamentoRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Departamento não encontrado."
-                        )
-                );
-    }
+                if (!empresa.isAtivo()) {
+                        throw new BusinessException(
+                                        "Não é possível vincular o departamento a uma empresa inativa.");
+                }
 
-    private DepartamentoResponse toResponse(
-            Departamento departamento
-    ) {
+                boolean nomeJaExiste = departamentoRepository
+                                .existsByEmpresaIdAndNomeIgnoreCase(
+                                                empresa.getId(),
+                                                request.getNome());
 
-        DepartamentoResponse response =
-                new DepartamentoResponse();
+                boolean mesmoNome = departamento.getEmpresa().getId().equals(empresa.getId())
+                                && departamento.getNome()
+                                                .equalsIgnoreCase(request.getNome());
 
-        response.setId(departamento.getId());
+                if (nomeJaExiste && !mesmoNome) {
+                        throw new BusinessException(
+                                        "Já existe um departamento com esse nome nesta empresa.");
+                }
 
-        response.setEmpresaId(
-                departamento.getEmpresa().getId()
-        );
+                departamento.setEmpresa(empresa);
+                departamento.setNome(request.getNome());
+                departamento.setDescricao(request.getDescricao());
 
-        response.setEmpresaNome(
-                departamento.getEmpresa().getNome()
-        );
+                return toResponse(
+                                departamentoRepository.save(departamento));
+        }
 
-        response.setNome(departamento.getNome());
-        response.setDescricao(departamento.getDescricao());
+        private DepartamentoResponse toResponse(
+                        Departamento departamento) {
 
-        response.setAtivo(departamento.isAtivo());
+                DepartamentoResponse response = new DepartamentoResponse();
 
-        response.setCreatedAt(departamento.getCreatedAt());
-        response.setUpdatedAt(departamento.getUpdatedAt());
+                response.setId(departamento.getId());
 
-        return response;
-    }
+                response.setEmpresaId(
+                                departamento.getEmpresa().getId());
+
+                response.setEmpresaNome(
+                                departamento.getEmpresa().getNome());
+
+                response.setNome(departamento.getNome());
+                response.setDescricao(departamento.getDescricao());
+
+                response.setAtivo(departamento.isAtivo());
+
+                response.setCreatedAt(departamento.getCreatedAt());
+                response.setUpdatedAt(departamento.getUpdatedAt());
+
+                return response;
+        }
 }

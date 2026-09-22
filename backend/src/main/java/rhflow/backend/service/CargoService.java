@@ -1,6 +1,8 @@
 package rhflow.backend.service;
 
 import org.springframework.stereotype.Service;
+
+import jakarta.transaction.Transactional;
 import rhflow.backend.dto.CargoRequest;
 import rhflow.backend.dto.CargoResponse;
 import rhflow.backend.entity.postgresql.Cargo;
@@ -14,132 +16,162 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional 
 public class CargoService {
 
-    private final CargoRepository cargoRepository;
-    private final DepartamentoRepository departamentoRepository;
+        private final CargoRepository cargoRepository;
+        private final DepartamentoRepository departamentoRepository;
 
-    public CargoService(
-            CargoRepository cargoRepository,
-            DepartamentoRepository departamentoRepository
-    ) {
-        this.cargoRepository = cargoRepository;
-        this.departamentoRepository = departamentoRepository;
-    }
-
-    public CargoResponse criar(CargoRequest request) {
-
-        Departamento departamento =
-                buscarDepartamento(request.getDepartamentoId());
-
-        if (!departamento.isAtivo()) {
-            throw new BusinessException(
-                    "Não é possível cadastrar um cargo em um departamento inativo."
-            );
+        public CargoService(
+                        CargoRepository cargoRepository,
+                        DepartamentoRepository departamentoRepository) {
+                this.cargoRepository = cargoRepository;
+                this.departamentoRepository = departamentoRepository;
         }
 
-        if (cargoRepository.existsByDepartamentoIdAndNomeIgnoreCase(
-                departamento.getId(),
-                request.getNome()
-        )) {
-            throw new BusinessException(
-                    "Já existe um cargo com esse nome neste departamento."
-            );
+        public CargoResponse criar(CargoRequest request) {
+
+                Departamento departamento = buscarDepartamento(request.getDepartamentoId());
+
+                if (!departamento.isAtivo()) {
+                        throw new BusinessException(
+                                        "Não é possível cadastrar um cargo em um departamento inativo.");
+                }
+
+                if (cargoRepository.existsByDepartamentoIdAndNomeIgnoreCase(
+                                departamento.getId(),
+                                request.getNome())) {
+                        throw new BusinessException(
+                                        "Já existe um cargo com esse nome neste departamento.");
+                }
+
+                Cargo cargo = new Cargo();
+
+                cargo.setDepartamento(departamento);
+                cargo.setNome(request.getNome());
+                cargo.setDescricao(request.getDescricao());
+                cargo.setNivel(request.getNivel());
+                cargo.setSalarioBase(request.getSalarioBase());
+
+                return toResponse(
+                                cargoRepository.save(cargo));
         }
 
-        Cargo cargo = new Cargo();
+        @Transactional
+        public List<CargoResponse> listarTodos() {
 
-        cargo.setDepartamento(departamento);
-        cargo.setNome(request.getNome());
-        cargo.setDescricao(request.getDescricao());
-        cargo.setNivel(request.getNivel());
-        cargo.setSalarioBase(request.getSalarioBase());
+                return cargoRepository
+                                .findAll()
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
+        }
 
-        return toResponse(
-                cargoRepository.save(cargo)
-        );
-    }
+        @Transactional
+        public CargoResponse buscarPorId(UUID id) {
+                return toResponse(buscarCargo(id));
+        }
 
-    public List<CargoResponse> listarTodos() {
+        @Transactional
+        public List<CargoResponse> listarPorDepartamento(
+                        UUID departamentoId) {
 
-        return cargoRepository
-                .findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
+                buscarDepartamento(departamentoId);
 
-    public CargoResponse buscarPorId(UUID id) {
-        return toResponse(buscarCargo(id));
-    }
+                return cargoRepository
+                                .findByDepartamentoId(departamentoId)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
+        }
 
-    public List<CargoResponse> listarPorDepartamento(
-            UUID departamentoId
-    ) {
+        public void desativar(UUID id) {
 
-        buscarDepartamento(departamentoId);
+                Cargo cargo = buscarCargo(id);
 
-        return cargoRepository
-                .findByDepartamentoId(departamentoId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
+                cargo.setAtivo(false);
 
-    public void desativar(UUID id) {
+                cargoRepository.save(cargo);
+        }
 
-        Cargo cargo = buscarCargo(id);
+        @Transactional
+        private Cargo buscarCargo(UUID id) {
 
-        cargo.setAtivo(false);
+                return cargoRepository
+                                .findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Cargo não encontrado."));
+        }
 
-        cargoRepository.save(cargo);
-    }
+        @Transactional
+        private Departamento buscarDepartamento(UUID id) {
 
-    private Cargo buscarCargo(UUID id) {
+                return departamentoRepository
+                                .findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Departamento não encontrado."));
+        }
 
-        return cargoRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Cargo não encontrado."
-                        )
-                );
-    }
+        private CargoResponse toResponse(Cargo cargo) {
 
-    private Departamento buscarDepartamento(UUID id) {
+                CargoResponse response = new CargoResponse();
 
-        return departamentoRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Departamento não encontrado."
-                        )
-                );
-    }
+                response.setId(cargo.getId());
 
-    private CargoResponse toResponse(Cargo cargo) {
+                response.setDepartamentoId(
+                                cargo.getDepartamento().getId());
 
-        CargoResponse response = new CargoResponse();
+                response.setDepartamentoNome(
+                                cargo.getDepartamento().getNome());
 
-        response.setId(cargo.getId());
+                response.setNome(cargo.getNome());
+                response.setDescricao(cargo.getDescricao());
+                response.setNivel(cargo.getNivel());
+                response.setSalarioBase(cargo.getSalarioBase());
+                response.setAtivo(cargo.isAtivo());
 
-        response.setDepartamentoId(
-                cargo.getDepartamento().getId()
-        );
+                response.setCreatedAt(cargo.getCreatedAt());
+                response.setUpdatedAt(cargo.getUpdatedAt());
 
-        response.setDepartamentoNome(
-                cargo.getDepartamento().getNome()
-        );
+                return response;
+        }
 
-        response.setNome(cargo.getNome());
-        response.setDescricao(cargo.getDescricao());
-        response.setNivel(cargo.getNivel());
-        response.setSalarioBase(cargo.getSalarioBase());
-        response.setAtivo(cargo.isAtivo());
+        public CargoResponse atualizar(
+                        UUID id,
+                        CargoRequest request) {
+                Cargo cargo = buscarCargo(id);
 
-        response.setCreatedAt(cargo.getCreatedAt());
-        response.setUpdatedAt(cargo.getUpdatedAt());
+                Departamento departamento = buscarDepartamento(request.getDepartamentoId());
 
-        return response;
-    }
+                if (!departamento.isAtivo()) {
+                        throw new BusinessException(
+                                        "Não é possível vincular o cargo a um departamento inativo.");
+                }
+
+                boolean nomeJaExiste = cargoRepository
+                                .existsByDepartamentoIdAndNomeIgnoreCase(
+                                                departamento.getId(),
+                                                request.getNome());
+
+                boolean mesmoCargo = cargo.getDepartamento()
+                                .getId()
+                                .equals(departamento.getId())
+                                &&
+                                cargo.getNome()
+                                                .equalsIgnoreCase(request.getNome());
+
+                if (nomeJaExiste && !mesmoCargo) {
+                        throw new BusinessException(
+                                        "Já existe um cargo com esse nome neste departamento.");
+                }
+
+                cargo.setDepartamento(departamento);
+                cargo.setNome(request.getNome());
+                cargo.setDescricao(request.getDescricao());
+                cargo.setNivel(request.getNivel());
+                cargo.setSalarioBase(request.getSalarioBase());
+
+                return toResponse(
+                                cargoRepository.save(cargo));
+        }
 }

@@ -22,4 +22,9 @@ public interface FuncionarioRepository
     List<Funcionario> findByCargoDepartamentoId(UUID departamentoId);
 
     List<Funcionario> findByCargoDepartamentoEmpresaId(UUID empresaId);
+
+    boolean existsByCpfAndIdNot(
+            String cpf,
+            UUID id
+        );
 }

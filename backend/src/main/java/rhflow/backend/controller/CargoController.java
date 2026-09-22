@@ -15,57 +15,58 @@ import java.util.UUID;
 @RequestMapping("/cargos")
 public class CargoController {
 
-    private final CargoService cargoService;
+        private final CargoService cargoService;
 
-    public CargoController(CargoService cargoService) {
-        this.cargoService = cargoService;
-    }
+        public CargoController(CargoService cargoService) {
+                this.cargoService = cargoService;
+        }
 
-    @PostMapping
-    public ResponseEntity<CargoResponse> criar(
-            @Valid @RequestBody CargoRequest request
-    ) {
+        @PostMapping
+        public ResponseEntity<CargoResponse> criar(
+                        @Valid @RequestBody CargoRequest request) {
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(cargoService.criar(request));
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(cargoService.criar(request));
+        }
 
-    @GetMapping
-    public ResponseEntity<List<CargoResponse>> listarTodos() {
+        @GetMapping
+        public ResponseEntity<List<CargoResponse>> listarTodos() {
 
-        return ResponseEntity.ok(
-                cargoService.listarTodos()
-        );
-    }
+                return ResponseEntity.ok(
+                                cargoService.listarTodos());
+        }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<CargoResponse> buscarPorId(
-            @PathVariable UUID id
-    ) {
+        @GetMapping("/{id}")
+        public ResponseEntity<CargoResponse> buscarPorId(
+                        @PathVariable UUID id) {
 
-        return ResponseEntity.ok(
-                cargoService.buscarPorId(id)
-        );
-    }
+                return ResponseEntity.ok(
+                                cargoService.buscarPorId(id));
+        }
 
-    @GetMapping("/departamento/{departamentoId}")
-    public ResponseEntity<List<CargoResponse>> listarPorDepartamento(
-            @PathVariable UUID departamentoId
-    ) {
+        @GetMapping("/departamento/{departamentoId}")
+        public ResponseEntity<List<CargoResponse>> listarPorDepartamento(
+                        @PathVariable UUID departamentoId) {
 
-        return ResponseEntity.ok(
-                cargoService.listarPorDepartamento(departamentoId)
-        );
-    }
+                return ResponseEntity.ok(
+                                cargoService.listarPorDepartamento(departamentoId));
+        }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> desativar(
-            @PathVariable UUID id
-    ) {
+        @PutMapping("/{id}")
+        public ResponseEntity<CargoResponse> atualizar(
+                        @PathVariable UUID id,
+                        @Valid @RequestBody CargoRequest request) {
+                return ResponseEntity.ok(
+                                cargoService.atualizar(id, request));
+        }
 
-        cargoService.desativar(id);
+        @DeleteMapping("/{id}")
+        public ResponseEntity<Void> desativar(
+                        @PathVariable UUID id) {
 
-        return ResponseEntity.noContent().build();
-    }
+                cargoService.desativar(id);
+
+                return ResponseEntity.noContent().build();
+        }
 }
