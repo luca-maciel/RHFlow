@@ -1,13 +1,35 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
 import StatCard from "../components/dashboard/StatCard";
 import DashboardCard from "../components/dashboard/DashboardCard";
+import employeeService from "../services/employeeService";
+
 
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [totalAtivos, setTotalAtivos] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const total = await employeeService.countByStatus("ATIVO");
+
+        setTotalAtivos(total);
+      } catch (error) {
+        console.error(
+          "Erro ao carregar funcionários ativos:",
+          error
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
   return (
     <div className="min-h-screen bg-background">
       <Sidebar
@@ -83,8 +105,8 @@ export default function Home() {
           >
             <StatCard
               title="Funcionários ativos"
-              value="248"
-              description="↑ 4 novos este mês"
+              value={totalAtivos.toString()}
+              description="Descrição adicional sobre os funcionários ativos."
               icon="♙"
             />
 

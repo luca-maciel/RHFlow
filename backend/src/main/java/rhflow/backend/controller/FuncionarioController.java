@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import rhflow.backend.dto.DesligamentoFuncionarioRequest;
 import rhflow.backend.dto.FuncionarioRequest;
 import rhflow.backend.dto.FuncionarioResponse;
+import rhflow.backend.enums.StatusFuncionario;
 import rhflow.backend.service.FuncionarioService;
 
 import java.util.List;
@@ -86,5 +87,12 @@ public class FuncionarioController {
 
                 return ResponseEntity.ok(
                                 funcionarioService.desligar(id, request));
+        }
+        
+        @GetMapping("/status/{status}/count")
+        public ResponseEntity<Long> contarPorStatus(
+                        @PathVariable StatusFuncionario status) {
+                return ResponseEntity.ok(
+                                funcionarioService.contarPorStatus(status));
         }
 }

@@ -268,4 +268,10 @@ public class FuncionarioService {
                 return toResponse(
                                 funcionarioRepository.save(funcionario));
         }
+
+        @Transactional
+        public long contarPorStatus(StatusFuncionario status) {
+                return funcionarioRepository.countByFuncionarioStatus(
+                                status.name());
+        }
 }

@@ -2,6 +2,15 @@ import api from "./api";
 import type { Employee, EmployeeRequest, EmployeeTerminationRequest } from "../types/employee";
 
 const employeeService = {
+  async countByStatus(
+    status: "ATIVO" | "AFASTADO" | "FERIAS" | "DESLIGADO"
+  ): Promise<number> {
+    const response = await api.get<number>(
+      `/funcionarios/status/${status}/count`
+    );
+  
+    return response.data;
+  },
   async findAll(): Promise<Employee[]> { return (await api.get<Employee[]>("/funcionarios")).data; },
   async findById(id: string): Promise<Employee> { return (await api.get<Employee>(`/funcionarios/${id}`)).data; },
   async findByPosition(id: string): Promise<Employee[]> { return (await api.get<Employee[]>(`/funcionarios/cargo/${id}`)).data; },
@@ -13,4 +22,6 @@ const employeeService = {
     return (await api.patch<Employee>(`/funcionarios/${id}/desligar`, data)).data;
   },
 };
+
+
 export default employeeService;

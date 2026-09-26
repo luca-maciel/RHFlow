@@ -1,6 +1,9 @@
 package rhflow.backend.repository.postgresql;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import rhflow.backend.entity.postgresql.Funcionario;
 import rhflow.backend.enums.StatusFuncionario;
 
@@ -27,4 +30,7 @@ public interface FuncionarioRepository
             String cpf,
             UUID id
         );
+
+        @Query(value = "SELECT COUNT(*) FROM funcionario WHERE status = :status", nativeQuery = true)
+        long countByFuncionarioStatus(@Param("status") String status);
 }

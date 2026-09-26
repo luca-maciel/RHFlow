@@ -2,7 +2,6 @@ package rhflow.backend.dto;
 
 import jakarta.validation.constraints.*;
 import rhflow.backend.enums.StatusFuncionario;
-
 import java.time.LocalDate;
 import java.util.UUID;
 
