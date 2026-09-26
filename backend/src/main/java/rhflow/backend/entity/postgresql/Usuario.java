@@ -16,10 +16,7 @@ public class Usuario {
     private UUID id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-        name = "funcionario_id",
-        unique = true
-    )
+    @JoinColumn(name = "funcionario_id", unique = true)
     private Funcionario funcionario;
 
     @Column(nullable = false, length = 150)
@@ -35,12 +32,16 @@ public class Usuario {
     private boolean ativo = true;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "usuario_perfil",
-        joinColumns = @JoinColumn(name = "usuario_id"),
-        inverseJoinColumns = @JoinColumn(name = "perfil_id")
-    )
+    @JoinTable(name = "usuario_perfil", joinColumns = @JoinColumn(name = "usuario_id"), inverseJoinColumns = @JoinColumn(name = "perfil_id"))
     private Set<Perfil> perfis = new HashSet<>();
+    
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "usuario_permissao",
+        joinColumns = @JoinColumn(name = "usuario_id"),
+        inverseJoinColumns = @JoinColumn(name = "permissao_id")
+    )
+    private Set<Permissao> permissoesIndividuais = new HashSet<>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -111,6 +112,15 @@ public class Usuario {
         this.perfis = perfis;
     }
 
+    public Set<Permissao> getPermissoesIndividuais() {
+        return permissoesIndividuais;
+    }
+
+    public void setPermissoesIndividuais(
+            Set<Permissao> permissoesIndividuais) {
+        this.permissoesIndividuais = permissoesIndividuais;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -118,4 +128,5 @@ public class Usuario {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+    
 }
