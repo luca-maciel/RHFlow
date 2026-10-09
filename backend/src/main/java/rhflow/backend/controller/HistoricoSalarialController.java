@@ -3,6 +3,7 @@ package rhflow.backend.controller;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import rhflow.backend.dto.HistoricoSalarialRequest;
@@ -24,6 +25,7 @@ public class HistoricoSalarialController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('HISTORICOS_SALARIAIS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<HistoricoSalarialResponse> criar(
             @Valid @RequestBody
@@ -35,6 +37,7 @@ public class HistoricoSalarialController {
                 .body(service.criar(request));
     }
 
+    @PreAuthorize("hasAnyAuthority('HISTORICOS_SALARIAIS_VISUALIZAR', 'HISTORICOS_SALARIAIS_GERENCIAR')")
     @GetMapping("/funcionario/{funcionarioId}")
     public ResponseEntity<List<HistoricoSalarialResponse>>
     listarPorFuncionario(
@@ -48,6 +51,7 @@ public class HistoricoSalarialController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('HISTORICOS_SALARIAIS_VISUALIZAR', 'HISTORICOS_SALARIAIS_GERENCIAR')")
     @GetMapping("/contrato/{contratoId}")
     public ResponseEntity<List<HistoricoSalarialResponse>>
     listarPorContrato(
@@ -61,6 +65,7 @@ public class HistoricoSalarialController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('HISTORICOS_SALARIAIS_VISUALIZAR', 'HISTORICOS_SALARIAIS_GERENCIAR')")
     @GetMapping("/funcionario/{funcionarioId}/atual")
     public ResponseEntity<HistoricoSalarialResponse>
     buscarAtual(

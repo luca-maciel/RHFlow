@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import rhflow.backend.dto.EncerramentoBeneficioRequest;
@@ -26,6 +27,7 @@ public class FuncionarioBeneficioController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('BENEFICIOS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<FuncionarioBeneficioResponse> atribuir(
             @Valid @RequestBody FuncionarioBeneficioRequest request
@@ -36,6 +38,7 @@ public class FuncionarioBeneficioController {
                 .body(service.atribuir(request));
     }
 
+    @PreAuthorize("hasAnyAuthority('BENEFICIOS_VISUALIZAR', 'BENEFICIOS_GERENCIAR')")
     @GetMapping("/funcionario/{funcionarioId}")
     public ResponseEntity<List<FuncionarioBeneficioResponse>>
     listarPorFuncionario(
@@ -47,6 +50,7 @@ public class FuncionarioBeneficioController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('BENEFICIOS_VISUALIZAR', 'BENEFICIOS_GERENCIAR')")
     @GetMapping("/funcionario/{funcionarioId}/ativos")
     public ResponseEntity<List<FuncionarioBeneficioResponse>>
     listarAtivosPorFuncionario(
@@ -58,6 +62,7 @@ public class FuncionarioBeneficioController {
         );
     }
 
+    @PreAuthorize("hasAuthority('BENEFICIOS_GERENCIAR')")
     @PatchMapping("/{id}/encerrar")
     public ResponseEntity<FuncionarioBeneficioResponse> encerrar(
             @PathVariable UUID id,

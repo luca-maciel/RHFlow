@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 import rhflow.backend.dto.DesligamentoFuncionarioRequest;
 import rhflow.backend.dto.FuncionarioRequest;
+import rhflow.backend.dto.ReativacaoFuncionarioRequest;
 import rhflow.backend.dto.FuncionarioResponse;
 import rhflow.backend.entity.postgresql.Cargo;
 import rhflow.backend.entity.postgresql.Funcionario;
@@ -32,6 +33,9 @@ public class FuncionarioService {
         }
 
         public FuncionarioResponse criar(FuncionarioRequest request) {
+                if (request.getStatus() == StatusFuncionario.DESLIGADO) {
+                        throw new BusinessException("Utilize a operação de desligamento.");
+                }
 
                 Cargo cargo = buscarCargo(request.getCargoId());
 
@@ -56,6 +60,7 @@ public class FuncionarioService {
                 if (request.getStatus() != null) {
                         funcionario.setStatus(request.getStatus());
                 }
+                funcionario.setAtivo(funcionario.getStatus() != StatusFuncionario.DESLIGADO);
 
                 return toResponse(
                                 funcionarioRepository.save(funcionario));
@@ -134,6 +139,21 @@ public class FuncionarioService {
 
                 return toResponse(
                                 funcionarioRepository.save(funcionario));
+        }
+
+        public FuncionarioResponse reativar(UUID id, ReativacaoFuncionarioRequest request) {
+                Funcionario funcionario = buscarFuncionario(id);
+                if (request.status() != StatusFuncionario.ATIVO) {
+                        throw new BusinessException("A reativação exige o status ATIVO.");
+                }
+                if (funcionario.getStatus() != StatusFuncionario.DESLIGADO) {
+                        throw new BusinessException("Somente funcionários desligados podem ser reativados.");
+                }
+                validarCargo(funcionario.getCargo());
+                funcionario.setStatus(StatusFuncionario.ATIVO);
+                funcionario.setAtivo(true);
+                funcionario.setDataDemissao(null);
+                return toResponse(funcionarioRepository.save(funcionario));
         }
 
         private void validarCargo(Cargo cargo) {
@@ -240,6 +260,17 @@ public class FuncionarioService {
                         UUID id,
                         FuncionarioRequest request) {
                 Funcionario funcionario = buscarFuncionario(id);
+                StatusFuncionario status = request.getStatus() != null
+                                ? request.getStatus() : funcionario.getStatus();
+                if (status != funcionario.getStatus()
+                                && (status == StatusFuncionario.DESLIGADO
+                                    || funcionario.getStatus() == StatusFuncionario.DESLIGADO)) {
+                        throw new BusinessException("Utilize a operação específica de desligamento ou reativação.");
+                }
+                if (funcionario.getDataDemissao() != null
+                                && request.getDataAdmissao().isAfter(funcionario.getDataDemissao())) {
+                        throw new BusinessException("A data de admissão não pode ser posterior à data de desligamento.");
+                }
 
                 Cargo cargo = buscarCargo(request.getCargoId());
 
@@ -264,6 +295,7 @@ public class FuncionarioService {
                 if (request.getStatus() != null) {
                         funcionario.setStatus(request.getStatus());
                 }
+                funcionario.setAtivo(funcionario.getStatus() != StatusFuncionario.DESLIGADO);
 
                 return toResponse(
                                 funcionarioRepository.save(funcionario));

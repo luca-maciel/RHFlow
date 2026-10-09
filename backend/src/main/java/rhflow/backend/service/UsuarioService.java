@@ -42,8 +42,7 @@ public class UsuarioService {
             PerfilRepository perfilRepository,
             PermissaoRepository permissaoRepository,
             FuncionarioRepository funcionarioRepository,
-            PasswordEncoder passwordEncoder
-    ) {
+            PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.perfilRepository = perfilRepository;
         this.permissaoRepository = permissaoRepository;
@@ -53,83 +52,63 @@ public class UsuarioService {
 
     public void atribuirPerfil(
             UUID usuarioId,
-            UUID perfilId
-    ) {
+            UUID perfilId) {
         Usuario usuario = buscarUsuario(usuarioId);
 
         Perfil perfil = perfilRepository.findById(perfilId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Perfil não encontrado"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Perfil não encontrado"));
 
         if (!usuario.getPerfis().add(perfil)) {
             throw new BusinessException(
-                    "O usuário já possui este perfil"
-            );
+                    "O usuário já possui este perfil");
         }
     }
 
     public void removerPerfil(
             UUID usuarioId,
-            UUID perfilId
-    ) {
+            UUID perfilId) {
         Usuario usuario = buscarUsuario(usuarioId);
 
         Perfil perfil = perfilRepository.findById(perfilId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Perfil não encontrado"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Perfil não encontrado"));
 
         if (!usuario.getPerfis().remove(perfil)) {
             throw new BusinessException(
-                    "O usuário não possui este perfil"
-            );
+                    "O usuário não possui este perfil");
         }
     }
 
     public void concederPermissao(
             UUID usuarioId,
-            UUID permissaoId
-    ) {
+            UUID permissaoId) {
         Usuario usuario = buscarUsuario(usuarioId);
 
         Permissao permissao = permissaoRepository
                 .findById(permissaoId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Permissão não encontrada"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Permissão não encontrada"));
 
         if (!usuario.getPermissoesIndividuais().add(permissao)) {
             throw new BusinessException(
-                    "O usuário já possui esta permissão individual"
-            );
+                    "O usuário já possui esta permissão individual");
         }
     }
 
     public void revogarPermissao(
             UUID usuarioId,
-            UUID permissaoId
-    ) {
+            UUID permissaoId) {
         Usuario usuario = buscarUsuario(usuarioId);
 
         Permissao permissao = permissaoRepository
                 .findById(permissaoId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Permissão não encontrada"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Permissão não encontrada"));
 
         if (!usuario.getPermissoesIndividuais().remove(permissao)) {
             throw new BusinessException(
-                    "O usuário não possui esta permissão individual"
-            );
+                    "O usuário não possui esta permissão individual");
         }
     }
 
@@ -143,20 +122,17 @@ public class UsuarioService {
 
     private Usuario buscarUsuario(UUID usuarioId) {
         return usuarioRepository.findById(usuarioId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Usuário não encontrado"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Usuário não encontrado"));
     }
 
     @Transactional(readOnly = true)
-public UsuarioResponse buscarPorId(UUID id) {
+    public UsuarioResponse buscarPorId(UUID id) {
 
-    Usuario usuario = buscarUsuario(id);
+        Usuario usuario = buscarUsuario(id);
 
-    return toResponse(usuario);
-}
+        return toResponse(usuario);
+    }
 
     @Transactional(readOnly = true)
     public List<UsuarioResponse> listar() {
@@ -171,24 +147,34 @@ public UsuarioResponse buscarPorId(UUID id) {
 
         Set<String> perfis = usuario.getPerfis()
                 .stream()
-                .map(Perfil::getNome)
-                .collect(Collectors.toSet());
+                .map(perfil -> perfil.getNome())
+                .collect(java.util.stream.Collectors.toSet());
 
-        UUID funcionarioId = usuario.getFuncionario() != null
-                ? usuario.getFuncionario().getId()
-                : null;
+        Set<UUID> perfilIds = usuario.getPerfis()
+                .stream()
+                .map(perfil -> perfil.getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        Set<UUID> permissaoIdsIndividuais = usuario.getPermissoesIndividuais()
+                .stream()
+                .map(permissao -> permissao.getId())
+                .collect(java.util.stream.Collectors.toSet());
 
         return new UsuarioResponse(
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getEmail(),
-                funcionarioId,
+                usuario.getFuncionario() != null
+                        ? usuario.getFuncionario().getId()
+                        : null,
                 usuario.isAtivo(),
                 perfis,
+                perfilIds,
+                permissaoIdsIndividuais,
                 usuario.getCreatedAt(),
                 usuario.getUpdatedAt());
     }
- 
+
     public UsuarioResponse cadastrar(UsuarioRequest request) {
 
         String email = request.email()
@@ -233,7 +219,7 @@ public UsuarioResponse buscarPorId(UUID id) {
 
         return toResponse(salvo);
     }
-    
+
     public UsuarioResponse atualizar(
             UUID id,
             UsuarioUpdateRequest request) {
@@ -299,5 +285,5 @@ public UsuarioResponse buscarPorId(UUID id) {
 
         usuario.setAtivo(true);
     }
-    
+
 }

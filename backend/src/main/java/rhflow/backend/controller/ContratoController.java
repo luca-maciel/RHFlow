@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import rhflow.backend.dto.ContratoRequest;
@@ -26,6 +27,7 @@ public class ContratoController {
         this.contratoService = contratoService;
     }
 
+    @PreAuthorize("hasAuthority('CONTRATOS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<ContratoResponse> criar(
             @Valid @RequestBody ContratoRequest request
@@ -39,6 +41,7 @@ public class ContratoController {
                 .body(response);
     }
 
+    @PreAuthorize("hasAnyAuthority('CONTRATOS_VISUALIZAR', 'CONTRATOS_GERENCIAR')")
     @GetMapping
     public ResponseEntity<List<ContratoResponse>> listarTodos() {
 
@@ -47,6 +50,7 @@ public class ContratoController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('CONTRATOS_VISUALIZAR', 'CONTRATOS_GERENCIAR')")
     @GetMapping("/{id}")
     public ResponseEntity<ContratoResponse> buscarPorId(
             @PathVariable UUID id
@@ -57,6 +61,7 @@ public class ContratoController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('CONTRATOS_VISUALIZAR', 'CONTRATOS_GERENCIAR')")
     @GetMapping("/funcionario/{funcionarioId}")
     public ResponseEntity<List<ContratoResponse>>
     listarPorFuncionario(
@@ -70,6 +75,7 @@ public class ContratoController {
         );
     }
 
+    @PreAuthorize("hasAuthority('CONTRATOS_GERENCIAR')")
     @PatchMapping("/{id}/encerrar")
     public ResponseEntity<ContratoResponse> encerrar(
             @PathVariable UUID id,

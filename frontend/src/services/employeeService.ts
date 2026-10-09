@@ -1,4 +1,4 @@
-import api from "./api";
+import {api} from "./api";
 import type { Employee, EmployeeRequest, EmployeeTerminationRequest } from "../types/employee";
 
 const employeeService = {
@@ -18,6 +18,9 @@ const employeeService = {
   async findByCompany(id: string): Promise<Employee[]> { return (await api.get<Employee[]>(`/funcionarios/empresa/${id}`)).data; },
   async create(data: EmployeeRequest): Promise<Employee> { return (await api.post<Employee>("/funcionarios", data)).data; },
   async update(id: string, data: EmployeeRequest): Promise<Employee> { return (await api.put<Employee>(`/funcionarios/${id}`, data)).data; },
+  async reactivate(id: string): Promise<Employee> {
+    return (await api.patch<Employee>(`/funcionarios/${id}/reativar`, { status: "ATIVO" })).data;
+  },
   async terminate(id: string, data: EmployeeTerminationRequest): Promise<Employee> {
     return (await api.patch<Employee>(`/funcionarios/${id}/desligar`, data)).data;
   },

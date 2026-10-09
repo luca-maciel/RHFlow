@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import jakarta.validation.Valid;
 import rhflow.backend.dto.UsuarioRequest;
 import rhflow.backend.dto.UsuarioResponse;
@@ -26,6 +28,7 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @PostMapping("/{usuarioId}/perfis/{perfilId}")
     public ResponseEntity<Void> atribuirPerfil(
             @PathVariable UUID usuarioId,
@@ -36,6 +39,7 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @DeleteMapping("/{usuarioId}/perfis/{perfilId}")
     public ResponseEntity<Void> removerPerfil(
             @PathVariable UUID usuarioId,
@@ -46,6 +50,7 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @PostMapping("/{usuarioId}/permissoes/{permissaoId}")
     public ResponseEntity<Void> concederPermissao(
             @PathVariable UUID usuarioId,
@@ -59,6 +64,7 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @DeleteMapping("/{usuarioId}/permissoes/{permissaoId}")
     public ResponseEntity<Void> revogarPermissao(
             @PathVariable UUID usuarioId,
@@ -72,6 +78,7 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAnyAuthority('USUARIOS_VISUALIZAR', 'USUARIOS_GERENCIAR')")
     @GetMapping("/{usuarioId}/permissoes")
     public ResponseEntity<Set<String>> consultarPermissoes(
             @PathVariable UUID usuarioId
@@ -81,6 +88,7 @@ public class UsuarioController {
         );
     }
     
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<UsuarioResponse> cadastrar(
             @Valid @RequestBody UsuarioRequest request) {
@@ -94,11 +102,18 @@ public class UsuarioController {
                 .body(usuario);
     }
 
+    @PreAuthorize("""
+        hasAnyAuthority(
+            'USUARIOS_VISUALIZAR',
+            'USUARIOS_GERENCIAR'
+        )
+    """)
     @GetMapping
     public ResponseEntity<List<UsuarioResponse>> listar() {
         return ResponseEntity.ok(usuarioService.listar());
     }
 
+    @PreAuthorize("hasAnyAuthority('USUARIOS_VISUALIZAR', 'USUARIOS_GERENCIAR')")
     @GetMapping("/{id}")
     public ResponseEntity<UsuarioResponse> buscarPorId(
             @PathVariable UUID id) {
@@ -106,6 +121,7 @@ public class UsuarioController {
                 usuarioService.buscarPorId(id));
     }
 
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @PutMapping("/{id}")
     public ResponseEntity<UsuarioResponse> atualizar(
             @PathVariable UUID id,
@@ -114,6 +130,7 @@ public class UsuarioController {
                 usuarioService.atualizar(id, request));
     }
 
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @PatchMapping("/{id}/desativar")
     public ResponseEntity<Void> desativar(
             @PathVariable UUID id) {
@@ -122,6 +139,7 @@ public class UsuarioController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
     @PatchMapping("/{id}/ativar")
     public ResponseEntity<Void> ativar(
             @PathVariable UUID id) {

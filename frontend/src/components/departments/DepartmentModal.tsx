@@ -348,7 +348,7 @@ const labelClass = `
 `;
 
 const inputClass = `
-  w-full rounded-xl border border-app-border
+  w-full h-10 rounded-xl border border-app-border
   bg-surface-secondary px-3.5
   text-xs text-foreground outline-none transition
   placeholder:text-muted-light

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import rhflow.backend.dto.AvaliacaoDesempenhoRequest;
@@ -25,6 +26,7 @@ public class AvaliacaoDesempenhoController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('AVALIACOES_GERENCIAR')")
     @PostMapping
     public ResponseEntity<AvaliacaoDesempenhoResponse> criar(
             @Valid
@@ -36,6 +38,7 @@ public class AvaliacaoDesempenhoController {
                 .body(service.criar(request));
     }
 
+    @PreAuthorize("hasAnyAuthority('AVALIACOES_VISUALIZAR', 'AVALIACOES_GERENCIAR')")
     @GetMapping
     public ResponseEntity<List<AvaliacaoDesempenhoResponse>>
     listarTodos() {
@@ -45,6 +48,7 @@ public class AvaliacaoDesempenhoController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('AVALIACOES_VISUALIZAR', 'AVALIACOES_GERENCIAR')")
     @GetMapping("/{id}")
     public ResponseEntity<AvaliacaoDesempenhoResponse>
     buscarPorId(
@@ -56,6 +60,7 @@ public class AvaliacaoDesempenhoController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('AVALIACOES_VISUALIZAR', 'AVALIACOES_GERENCIAR')")
     @GetMapping("/funcionario/{funcionarioId}")
     public ResponseEntity<List<AvaliacaoDesempenhoResponse>>
     listarPorFuncionario(
@@ -67,6 +72,7 @@ public class AvaliacaoDesempenhoController {
         );
     }
 
+    @PreAuthorize("hasAuthority('AVALIACOES_GERENCIAR')")
     @PutMapping("/{id}")
     public ResponseEntity<AvaliacaoDesempenhoResponse>
     atualizar(
@@ -80,6 +86,7 @@ public class AvaliacaoDesempenhoController {
         );
     }
 
+    @PreAuthorize("hasAuthority('AVALIACOES_GERENCIAR')")
     @PatchMapping("/{id}/finalizar")
     public ResponseEntity<AvaliacaoDesempenhoResponse>
     finalizar(
@@ -91,6 +98,7 @@ public class AvaliacaoDesempenhoController {
         );
     }
 
+    @PreAuthorize("hasAuthority('AVALIACOES_GERENCIAR')")
     @PatchMapping("/{id}/cancelar")
     public ResponseEntity<AvaliacaoDesempenhoResponse>
     cancelar(

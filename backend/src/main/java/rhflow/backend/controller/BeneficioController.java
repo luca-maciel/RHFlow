@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import rhflow.backend.dto.BeneficioRequest;
@@ -25,6 +26,7 @@ public class BeneficioController {
         this.beneficioService = beneficioService;
     }
 
+    @PreAuthorize("hasAuthority('BENEFICIOS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<BeneficioResponse> criar(
             @Valid @RequestBody BeneficioRequest request
@@ -35,6 +37,7 @@ public class BeneficioController {
                 .body(beneficioService.criar(request));
     }
 
+    @PreAuthorize("hasAnyAuthority('BENEFICIOS_VISUALIZAR', 'BENEFICIOS_GERENCIAR')")
     @GetMapping
     public ResponseEntity<List<BeneficioResponse>> listarTodos() {
 
@@ -43,6 +46,7 @@ public class BeneficioController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('BENEFICIOS_VISUALIZAR', 'BENEFICIOS_GERENCIAR')")
     @GetMapping("/ativos")
     public ResponseEntity<List<BeneficioResponse>> listarAtivos() {
 
@@ -51,6 +55,7 @@ public class BeneficioController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('BENEFICIOS_VISUALIZAR', 'BENEFICIOS_GERENCIAR')")
     @GetMapping("/{id}")
     public ResponseEntity<BeneficioResponse> buscarPorId(
             @PathVariable UUID id
@@ -61,6 +66,7 @@ public class BeneficioController {
         );
     }
 
+    @PreAuthorize("hasAuthority('BENEFICIOS_GERENCIAR')")
     @PutMapping("/{id}")
     public ResponseEntity<BeneficioResponse> atualizar(
             @PathVariable UUID id,
@@ -72,6 +78,7 @@ public class BeneficioController {
         );
     }
 
+    @PreAuthorize("hasAuthority('BENEFICIOS_GERENCIAR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<BeneficioResponse> desativar(
             @PathVariable UUID id

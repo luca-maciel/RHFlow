@@ -4,11 +4,17 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import rhflow.backend.dto.FeriasRequest;
 import rhflow.backend.dto.FeriasResponse;
 import rhflow.backend.service.FeriasService;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+import rhflow.backend.dto.MinhasFeriasRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,19 +31,26 @@ public class FeriasController {
         this.feriasService = feriasService;
     }
 
-    @PostMapping
-    public ResponseEntity<FeriasResponse> solicitar(
-            @Valid @RequestBody FeriasRequest request
-    ) {
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
+    @PreAuthorize("hasAuthority('FERIAS_GERENCIAR')")
+@PostMapping
+public ResponseEntity<FeriasResponse> solicitar(
+        @Valid @RequestBody FeriasRequest request
+) {
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
                     feriasService.solicitar(request)
-                );
-    }
+            );
+}
 
-    @GetMapping
+    @PreAuthorize("""
+    hasAnyAuthority(
+        'FERIAS_VISUALIZAR',
+        'FERIAS_APROVAR',
+        'FERIAS_GERENCIAR'
+    )
+""")
+@GetMapping
     public ResponseEntity<List<FeriasResponse>> listarTodos() {
 
         return ResponseEntity.ok(
@@ -45,6 +58,13 @@ public class FeriasController {
         );
     }
 
+    @PreAuthorize("""
+    hasAnyAuthority(
+        'FERIAS_VISUALIZAR',
+        'FERIAS_APROVAR',
+        'FERIAS_GERENCIAR'
+    )
+""")
     @GetMapping("/{id}")
     public ResponseEntity<FeriasResponse> buscarPorId(
             @PathVariable UUID id
@@ -55,6 +75,13 @@ public class FeriasController {
         );
     }
 
+    @PreAuthorize("""
+    hasAnyAuthority(
+        'FERIAS_VISUALIZAR',
+        'FERIAS_APROVAR',
+        'FERIAS_GERENCIAR'
+    )
+""")
     @GetMapping("/funcionario/{funcionarioId}")
     public ResponseEntity<List<FeriasResponse>>
     listarPorFuncionario(
@@ -68,6 +95,7 @@ public class FeriasController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('FERIAS_APROVAR', 'FERIAS_GERENCIAR')")
     @PatchMapping("/{id}/aprovar")
     public ResponseEntity<FeriasResponse> aprovar(
             @PathVariable UUID id
@@ -78,6 +106,7 @@ public class FeriasController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('FERIAS_APROVAR', 'FERIAS_GERENCIAR')")
     @PatchMapping("/{id}/rejeitar")
     public ResponseEntity<FeriasResponse> rejeitar(
             @PathVariable UUID id
@@ -88,6 +117,7 @@ public class FeriasController {
         );
     }
 
+    @PreAuthorize("hasAuthority('FERIAS_GERENCIAR')")
     @PatchMapping("/{id}/iniciar")
     public ResponseEntity<FeriasResponse> iniciar(
             @PathVariable UUID id
@@ -98,6 +128,7 @@ public class FeriasController {
         );
     }
 
+    @PreAuthorize("hasAuthority('FERIAS_GERENCIAR')")
     @PatchMapping("/{id}/concluir")
     public ResponseEntity<FeriasResponse> concluir(
             @PathVariable UUID id
@@ -108,6 +139,7 @@ public class FeriasController {
         );
     }
 
+    @PreAuthorize("hasAuthority('FERIAS_GERENCIAR')")
     @PatchMapping("/{id}/cancelar")
     public ResponseEntity<FeriasResponse> cancelar(
             @PathVariable UUID id
@@ -117,4 +149,45 @@ public class FeriasController {
                 feriasService.cancelar(id)
         );
     }
+
+    @PreAuthorize(
+    "hasAnyAuthority('FERIAS_SOLICITAR', 'FERIAS_GERENCIAR')"
+)
+@PostMapping("/minhas")
+public ResponseEntity<FeriasResponse>
+solicitarMinhasFerias(
+        @AuthenticationPrincipal Jwt jwt,
+        @Valid @RequestBody MinhasFeriasRequest request
+) {
+    UUID usuarioId =
+            UUID.fromString(jwt.getSubject());
+
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
+                    feriasService
+                            .solicitarMinhasFerias(
+                                    usuarioId,
+                                    request
+                            )
+            );
+}
+
+@PreAuthorize(
+    "hasAnyAuthority('FERIAS_SOLICITAR', 'FERIAS_GERENCIAR')"
+)
+@GetMapping("/minhas")
+public ResponseEntity<List<FeriasResponse>>
+listarMinhasFerias(
+        @AuthenticationPrincipal Jwt jwt
+) {
+    UUID usuarioId =
+            UUID.fromString(jwt.getSubject());
+
+    return ResponseEntity.ok(
+            feriasService.listarMinhasFerias(
+                    usuarioId
+            )
+    );
+}
 }

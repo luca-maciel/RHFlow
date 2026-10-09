@@ -21,6 +21,14 @@ import rhflow.backend.dto.LoginResponse;
 import rhflow.backend.entity.postgresql.Usuario;
 import rhflow.backend.repository.postgresql.UsuarioRepository;
 
+import java.util.UUID;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import rhflow.backend.dto.AuthMeResponse;
+import rhflow.backend.entity.postgresql.Perfil;
+import rhflow.backend.exception.ResourceNotFoundException;
+
 @Service
 public class AuthService {
 
@@ -86,5 +94,33 @@ public class AuthService {
                 token,
                 "Bearer",
                 expirationMinutes * 60);
+    }
+    @Transactional(readOnly = true)
+    public AuthMeResponse me(UUID usuarioId) {
+
+        Usuario usuario = usuarioRepository
+                .findById(usuarioId)
+                .orElseThrow(() ->
+                    new ResourceNotFoundException(
+                        "Usuário não encontrado"
+                    )
+                );
+
+        Set<String> perfis = usuario.getPerfis()
+                .stream()
+                .map(Perfil::getNome)
+                .collect(Collectors.toSet());
+
+        Set<String> permissoes = usuarioRepository
+                .findPermissoesEfetivas(usuarioId);
+
+        return new AuthMeResponse(
+            usuario.getId(),
+            usuario.getNome(),
+            usuario.getEmail(),
+            usuario.isAtivo(),
+            perfis,
+            permissoes
+        );
     }
 }

@@ -3,6 +3,7 @@ type StatCardProps = {
   value: string;
   description: string;
   icon: string;
+  onClick?: () => void;
 };
 
 export default function StatCard({
@@ -10,10 +11,26 @@ export default function StatCard({
   value,
   description,
   icon,
+  onClick,
 }: StatCardProps) {
+  const clickable = Boolean(onClick);
+
   return (
     <div
-      className="
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (
+          clickable &&
+          (event.key === "Enter" ||
+            event.key === " ")
+        ) {
+          event.preventDefault();
+          onClick?.();
+        }
+      }}
+      className={`
         rounded-2xl
         border
         border-app-border
@@ -25,7 +42,20 @@ export default function StatCard({
 
         hover:-translate-y-0.5
         hover:shadow-[0_8px_25px_rgba(15,23,42,0.05)]
-      "
+
+        ${
+          clickable
+            ? `
+              cursor-pointer
+              hover:border-blue-500/30
+              hover:bg-surface-hover
+              focus-visible:outline
+              focus-visible:outline-2
+              focus-visible:outline-blue-500
+            `
+            : ""
+        }
+      `}
     >
       <div className="mb-5 flex items-start justify-between">
         <div>
@@ -48,15 +78,25 @@ export default function StatCard({
             rounded-xl
             bg-icon-surface
             text-lg
+            transition-transform
+            duration-200
           "
         >
           {icon}
         </div>
       </div>
 
-      <p className="text-[10px] text-muted-light">
-        {description}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] text-muted-light">
+          {description}
+        </p>
+
+        {clickable && (
+          <span className="shrink-0 text-[10px] font-medium text-blue-600">
+            Ver detalhes →
+          </span>
+        )}
+      </div>
     </div>
   );
 }

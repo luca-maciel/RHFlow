@@ -28,7 +28,7 @@ function Badge({ s }: { s: string }) {
   const c =
     s === "ATIVO"
       ? "text-emerald-600"
-      : s === "FÉRIAS"
+      : s === "FERIAS"
         ? "text-blue-600"
         : s === "AFASTADO"
           ? "text-amber-600"
@@ -92,6 +92,18 @@ export default function EmployeeDetails() {
       setModal(false);
     } catch (e) {
       setError(msg(e, "Não foi possível atualizar o funcionário."));
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function reactivate() {
+    if (!id) return;
+    try {
+      setSaving(true);
+      setError("");
+      setEmployee(await employeeService.reactivate(id));
+    } catch (e) {
+      setError(msg(e, "Não foi possível reativar o funcionário."));
     } finally {
       setSaving(false);
     }
@@ -161,6 +173,12 @@ export default function EmployeeDetails() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    {employee.status === "DESLIGADO" && (
+                      <button onClick={reactivate} disabled={saving}
+                        className="rounded-xl border border-app-border px-4 py-2.5 text-xs font-semibold text-primary disabled:opacity-60">
+                        {saving ? "Reativando..." : "Reativar"}
+                      </button>
+                    )}
                     {employee.ativo && employee.status !== "DESLIGADO" && (
                       <button
                         onClick={() => setTerm(true)}

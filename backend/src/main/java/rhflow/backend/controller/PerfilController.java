@@ -7,6 +7,7 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import rhflow.backend.dto.PerfilRequest;
@@ -23,6 +24,7 @@ public class PerfilController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('PERFIS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<PerfilResponse> cadastrar(
             @Valid @RequestBody PerfilRequest request
@@ -34,11 +36,23 @@ public class PerfilController {
                 .body(response);
     }
 
+    @PreAuthorize("""
+        hasAnyAuthority(
+            'PERFIS_VISUALIZAR',
+            'PERFIS_GERENCIAR'
+        )
+    """)
     @GetMapping
     public ResponseEntity<List<PerfilResponse>> listar() {
         return ResponseEntity.ok(service.listar());
     }
 
+    @PreAuthorize("""
+        hasAnyAuthority(
+            'PERFIS_VISUALIZAR',
+            'PERFIS_GERENCIAR'
+        )
+    """)
     @GetMapping("/{id}")
     public ResponseEntity<PerfilResponse> buscar(
             @PathVariable UUID id
@@ -46,6 +60,7 @@ public class PerfilController {
         return ResponseEntity.ok(service.buscarPorId(id));
     }
 
+    @PreAuthorize("hasAuthority('PERFIS_GERENCIAR')")
     @PutMapping("/{id}")
     public ResponseEntity<PerfilResponse> atualizar(
             @PathVariable UUID id,
@@ -54,6 +69,7 @@ public class PerfilController {
         return ResponseEntity.ok(service.atualizar(id, request));
     }
 
+    @PreAuthorize("hasAuthority('PERFIS_GERENCIAR')")
     @PostMapping("/{perfilId}/permissoes/{permissaoId}")
     public ResponseEntity<Void> atribuirPermissao(
             @PathVariable UUID perfilId,
@@ -64,6 +80,7 @@ public class PerfilController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('PERFIS_GERENCIAR')")
     @DeleteMapping("/{perfilId}/permissoes/{permissaoId}")
     public ResponseEntity<Void> removerPermissao(
             @PathVariable UUID perfilId,

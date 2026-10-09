@@ -3,6 +3,7 @@ package rhflow.backend.controller;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rhflow.backend.dto.CargoRequest;
 import rhflow.backend.dto.CargoResponse;
@@ -21,6 +22,7 @@ public class CargoController {
                 this.cargoService = cargoService;
         }
 
+        @PreAuthorize("hasAuthority('CARGOS_GERENCIAR')")
         @PostMapping
         public ResponseEntity<CargoResponse> criar(
                         @Valid @RequestBody CargoRequest request) {
@@ -30,6 +32,7 @@ public class CargoController {
                                 .body(cargoService.criar(request));
         }
 
+        @PreAuthorize("hasAnyAuthority('CARGOS_VISUALIZAR', 'CARGOS_GERENCIAR')")
         @GetMapping
         public ResponseEntity<List<CargoResponse>> listarTodos() {
 
@@ -37,6 +40,7 @@ public class CargoController {
                                 cargoService.listarTodos());
         }
 
+        @PreAuthorize("hasAnyAuthority('CARGOS_VISUALIZAR', 'CARGOS_GERENCIAR')")
         @GetMapping("/{id}")
         public ResponseEntity<CargoResponse> buscarPorId(
                         @PathVariable UUID id) {
@@ -45,6 +49,7 @@ public class CargoController {
                                 cargoService.buscarPorId(id));
         }
 
+        @PreAuthorize("hasAnyAuthority('CARGOS_VISUALIZAR', 'CARGOS_GERENCIAR')")
         @GetMapping("/departamento/{departamentoId}")
         public ResponseEntity<List<CargoResponse>> listarPorDepartamento(
                         @PathVariable UUID departamentoId) {
@@ -53,6 +58,7 @@ public class CargoController {
                                 cargoService.listarPorDepartamento(departamentoId));
         }
 
+        @PreAuthorize("hasAuthority('CARGOS_GERENCIAR')")
         @PutMapping("/{id}")
         public ResponseEntity<CargoResponse> atualizar(
                         @PathVariable UUID id,
@@ -61,6 +67,7 @@ public class CargoController {
                                 cargoService.atualizar(id, request));
         }
 
+        @PreAuthorize("hasAuthority('CARGOS_GERENCIAR')")
         @DeleteMapping("/{id}")
         public ResponseEntity<Void> desativar(
                         @PathVariable UUID id) {

@@ -1,4 +1,6 @@
 import { useTheme } from "../../contexts/ThemeContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type HeaderProps = {
   onMenuClick: () => void;
@@ -7,6 +9,13 @@ type HeaderProps = {
 export default function Header({
   onMenuClick,
 }: HeaderProps) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -277,6 +286,7 @@ export default function Header({
         {/* USER */}
         <button
           type="button"
+          // onClick={handleLogout}
           className="
             flex
             min-w-0

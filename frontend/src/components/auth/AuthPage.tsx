@@ -1,10 +1,22 @@
 import "../../index.css";
 import { useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Moon, Sun } from "lucide-react";
 
 type AuthMode = "login" | "register";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
+
+  const { login, loading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const [loginError, setLoginError] = useState("");
+  const [registerError, setRegisterError] = useState("");
 
   // ==========================================================
   // LOGIN
@@ -31,16 +43,30 @@ export default function AuthPage() {
   // LOGIN
   // ==========================================================
 
-  const handleLogin = (event: any) => {
+  const handleLogin = async (event: any) => {
     event.preventDefault();
+    setLoginError("");
 
-    console.log("Login:", {
-      email: loginEmail,
-      password: loginPassword,
-    });
+    try {
+      await login({
+        email: loginEmail,
+        senha: loginPassword,
+      });
 
-    // Futuramente:
-    // POST /auth/login
+      navigate("/home", { replace: true });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          setLoginError("E-mail ou senha inválidos.");
+        } else if (!error.response) {
+          setLoginError("Não foi possível conectar ao servidor.");
+        } else {
+          setLoginError("Não foi possível realizar o login.");
+        }
+      } else {
+        setLoginError("Ocorreu um erro inesperado.");
+      }
+    }
   };
 
   // ==========================================================
@@ -49,20 +75,43 @@ export default function AuthPage() {
 
   const handleRegister = (event: any) => {
     event.preventDefault();
+    setRegisterError("");
 
     if (registerPassword !== confirmPassword) {
-      console.log("As senhas não coincidem.");
+      setRegisterError("As senhas não coincidem.");
       return;
     }
 
-    console.log("Registro:", {
-      name,
-      email: registerEmail,
-      password: registerPassword,
-    });
+    if (registerPassword.length < 8) {
+      setRegisterError("A senha deve possuir pelo menos 8 caracteres.");
+      return;
+    }
 
-    // Futuramente:
-    // POST /auth/register
+    if (!/[A-Z]/.test(registerPassword)) {
+      setRegisterError("A senha deve possuir pelo menos uma letra maiúscula.");
+      return;
+    }
+
+    if (!/[a-z]/.test(registerPassword)) {
+      setRegisterError("A senha deve possuir pelo menos uma letra minúscula.");
+      return;
+    }
+
+    if (!/\d/.test(registerPassword)) {
+      setRegisterError("A senha deve possuir pelo menos um número.");
+      return;
+    }
+
+    /*
+     * O cadastro público ainda depende de um endpoint próprio no backend,
+     * por exemplo POST /auth/register.
+     *
+     * Não use POST /usuarios aqui, porque esse endpoint é administrativo
+     * e ficará protegido pelo Spring Security.
+     */
+    setRegisterError(
+      "O cadastro público será conectado quando o endpoint /auth/register estiver disponível."
+    );
   };
 
   // ==========================================================
@@ -71,10 +120,50 @@ export default function AuthPage() {
 
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
+    setLoginError("");
+    setRegisterError("");
   };
 
   return (
-    <main className="min-h-screen bg-background md:flex md:items-center md:justify-center md:p-10">
+    <main className="relative min-h-screen bg-background md:flex md:items-center md:justify-center md:p-10">
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
+        title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+        className="
+          fixed
+          right-4
+          top-4
+          z-50
+          flex
+          h-10
+          w-10
+          items-center
+          justify-center
+          rounded-xl
+          border
+          border-app-border
+          bg-surface/90
+          text-foreground
+          shadow-sm
+          backdrop-blur
+          transition-all
+          duration-200
+          hover:-translate-y-0.5
+          hover:border-blue-500/50
+          hover:text-blue-600
+          hover:shadow-md
+          focus:outline-none
+          focus:ring-2
+          focus:ring-blue-600/20
+          md:right-6
+          md:top-6
+        "
+      >
+        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
+
       {/* ======================================================
           CONTAINER PRINCIPAL
       ======================================================= */}
@@ -236,7 +325,7 @@ export default function AuthPage() {
             "
           />
 
-          <div className="relative z-10 flex h-full w-full flex-col p-[42px_52px] gap-50">
+          <div className="relative z-10 flex h-full w-full flex-col p-[42px_52px]">
             {/* Brand */}
 
             <div className="flex items-center gap-2.5 text-xl font-bold">
@@ -264,7 +353,7 @@ export default function AuthPage() {
 
             <div className="m-auto px-7 text-center">
               <h2 className="mb-3.5 text-[34px] font-bold tracking-tight">
-                Olá, bem-vindo! 👋
+                Olá, bem-vindo!
               </h2>
 
               <p className="mb-7 text-sm leading-[1.7] text-white/85">
@@ -363,7 +452,7 @@ export default function AuthPage() {
             "
           />
 
-          <div className="relative z-10 flex h-full w-full flex-col p-[42px_52px] gap-50">
+          <div className="relative z-10 flex h-full w-full flex-col p-[42px_52px]">
             {/* Brand */}
 
             <div className="flex items-center gap-2.5 text-xl font-bold">
@@ -391,7 +480,7 @@ export default function AuthPage() {
 
             <div className="m-auto px-7 text-center">
               <h2 className="mb-3.5 text-[34px] font-bold tracking-tight">
-                Olá, bem-vindo! 👋
+                Olá, bem-vindo!
               </h2>
 
               <p className="mb-7 text-sm leading-[1.7] text-white/85">
@@ -637,10 +726,30 @@ export default function AuthPage() {
                 </div>
               </div>
 
+              {loginError && (
+                <div
+                  role="alert"
+                  className="
+                    rounded-xl
+                    border
+                    border-red-500/20
+                    bg-red-500/10
+                    px-3.5
+                    py-3
+                    text-[11px]
+                    font-medium
+                    text-red-500
+                  "
+                >
+                  {loginError}
+                </div>
+              )}
+
               {/* Botão */}
 
               <button
                 type="submit"
+                disabled={loading}
                 className="
                   mt-1
                   h-[48px]
@@ -657,8 +766,11 @@ export default function AuthPage() {
                   hover:-translate-y-px
                   hover:bg-blue-700
                   hover:shadow-[0_9px_20px_rgba(37,99,235,0.25)]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                  disabled:hover:translate-y-0
                 ">
-                Entrar
+                {loading ? "Entrando..." : "Entrar"}
               </button>
             </form>
 
@@ -1139,6 +1251,25 @@ export default function AuthPage() {
                 </div>
               </div>
 
+              {registerError && (
+                <div
+                  role="alert"
+                  className="
+                    rounded-xl
+                    border
+                    border-red-500/20
+                    bg-red-500/10
+                    px-3.5
+                    py-3
+                    text-[11px]
+                    font-medium
+                    text-red-500
+                  "
+                >
+                  {registerError}
+                </div>
+              )}
+
               {/* Botão */}
 
               <button
@@ -1171,7 +1302,7 @@ export default function AuthPage() {
 
             {/* Footer */}
 
-            <p className="mt-5 text-center text-[11px] text-muted">
+            <p className="mt-4 text-center text-[11px] text-muted">
               Já possui uma conta?
               <button
                 type="button"

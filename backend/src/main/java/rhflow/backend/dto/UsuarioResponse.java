@@ -6,13 +6,25 @@ import java.util.UUID;
 
 public record UsuarioResponse(
 
-    UUID id,
-    String nome,
-    String email,
-    UUID funcionarioId,
-    boolean ativo,
-    Set<String> perfis,
-    LocalDateTime createdAt,
-    LocalDateTime updatedAt
+        UUID id,
 
-) {}
+        String nome,
+
+        String email,
+
+        UUID funcionarioId,
+
+        boolean ativo,
+
+        Set<String> perfis,
+
+        Set<UUID> perfilIds,
+
+        Set<UUID> permissaoIdsIndividuais,
+
+        LocalDateTime createdAt,
+
+        LocalDateTime updatedAt
+
+) {
+}

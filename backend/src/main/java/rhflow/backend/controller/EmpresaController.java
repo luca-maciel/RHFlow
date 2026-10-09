@@ -3,6 +3,7 @@ package rhflow.backend.controller;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rhflow.backend.dto.EmpresaRequest;
 import rhflow.backend.dto.EmpresaResponse;
@@ -21,6 +22,7 @@ public class EmpresaController {
         this.empresaService = empresaService;
     }
 
+    @PreAuthorize("hasAuthority('EMPRESAS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<EmpresaResponse> criar(
             @Valid @RequestBody EmpresaRequest request
@@ -33,11 +35,13 @@ public class EmpresaController {
                 .body(empresa);
     }
 
+    @PreAuthorize("hasAnyAuthority('EMPRESAS_VISUALIZAR', 'EMPRESAS_GERENCIAR')")
     @GetMapping
     public ResponseEntity<List<EmpresaResponse>> listarTodas() {
         return ResponseEntity.ok(empresaService.listarTodas());
     }
 
+    @PreAuthorize("hasAnyAuthority('EMPRESAS_VISUALIZAR', 'EMPRESAS_GERENCIAR')")
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaResponse> buscarPorId(
             @PathVariable UUID id
@@ -45,6 +49,7 @@ public class EmpresaController {
         return ResponseEntity.ok(empresaService.buscarPorId(id));
     }
 
+    @PreAuthorize("hasAuthority('EMPRESAS_GERENCIAR')")
     @PutMapping("/{id}")
     public ResponseEntity<EmpresaResponse> atualizar(
             @PathVariable UUID id,
@@ -53,6 +58,7 @@ public class EmpresaController {
         return ResponseEntity.ok(empresaService.atualizar(id, request));
     }
 
+    @PreAuthorize("hasAuthority('EMPRESAS_GERENCIAR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> desativar(
             @PathVariable UUID id

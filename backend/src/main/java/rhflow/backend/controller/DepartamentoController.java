@@ -3,6 +3,7 @@ package rhflow.backend.controller;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import rhflow.backend.dto.DepartamentoRequest;
 import rhflow.backend.dto.DepartamentoResponse;
@@ -23,6 +24,7 @@ public class DepartamentoController {
         this.departamentoService = departamentoService;
     }
 
+    @PreAuthorize("hasAuthority('DEPARTAMENTOS_GERENCIAR')")
     @PostMapping
     public ResponseEntity<DepartamentoResponse> criar(
             @Valid @RequestBody DepartamentoRequest request
@@ -33,6 +35,7 @@ public class DepartamentoController {
                 .body(departamentoService.criar(request));
     }
 
+    @PreAuthorize("hasAnyAuthority('DEPARTAMENTOS_VISUALIZAR', 'DEPARTAMENTOS_GERENCIAR')")
     @GetMapping
     public ResponseEntity<List<DepartamentoResponse>> listarTodos() {
 
@@ -41,6 +44,7 @@ public class DepartamentoController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('DEPARTAMENTOS_VISUALIZAR', 'DEPARTAMENTOS_GERENCIAR')")
     @GetMapping("/{id}")
     public ResponseEntity<DepartamentoResponse> buscarPorId(
             @PathVariable UUID id
@@ -51,6 +55,7 @@ public class DepartamentoController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('DEPARTAMENTOS_VISUALIZAR', 'DEPARTAMENTOS_GERENCIAR')")
     @GetMapping("/empresa/{empresaId}")
     public ResponseEntity<List<DepartamentoResponse>> listarPorEmpresa(
             @PathVariable UUID empresaId
@@ -61,6 +66,7 @@ public class DepartamentoController {
         );
     }
 
+    @PreAuthorize("hasAuthority('DEPARTAMENTOS_GERENCIAR')")
     @PutMapping("/{id}")
     public ResponseEntity<DepartamentoResponse> atualizar(
                     @PathVariable UUID id,
@@ -69,6 +75,7 @@ public class DepartamentoController {
                             departamentoService.atualizar(id, request));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTAMENTOS_GERENCIAR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> desativar(
             @PathVariable UUID id

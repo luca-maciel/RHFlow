@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Company } from "../../types/company";
 import type { Department } from "../../types/department";
 import type { Position } from "../../types/position";
@@ -27,6 +27,11 @@ type Form = {
   dataAdmissao: string;
   status: string;
 };
+const statusOptions = [
+  { value: "ATIVO", label: "Ativo" },
+  { value: "AFASTADO", label: "Afastado" },
+  { value: "FERIAS", label: "Férias" },
+];
 const empty: Form = {
   empresaId: "",
   departamentoId: "",
@@ -68,7 +73,7 @@ export default function EmployeeModal({
             email: employee.email ?? "",
             telefone: employee.telefone ?? "",
             dataAdmissao: employee.dataAdmissao,
-            status: employee.status ?? "ATIVO",
+            status: employee.status,
           }
         : empty,
     );
@@ -184,18 +189,17 @@ export default function EmployeeModal({
                 value={form.dataAdmissao}
                 onChange={(v) => set("dataAdmissao", v)}
               />
-              <Select
-                label="Status"
-                value={form.status}
-                disabled={loading}
-                options={[
-                  ["ATIVO", "Ativo"],
-                  ["FÉRIAS", "Férias"],
-                  ["AFASTADO", "Afastado"],
-                  ["INATIVO", "Inativo"],
-                ]}
-                onChange={(v) => set("status", v)}
-              />
+              {employee?.status === "DESLIGADO" ? (
+                <p className="text-xs flex items-center text-center text-muted">Desligado — utilize a ação Reativar nos detalhes do funcionário.</p>
+              ) : (
+                <Select
+                  label="Status"
+                  value={form.status}
+                  disabled={loading}
+                  options={statusOptions.map(({ value, label }) => [value, label])}
+                  onChange={(v) => set("status", v)}
+                />
+              )}
             </div>
             <div className="my-6 border-t border-app-border" />
             <h3 className="mb-4 text-xs font-semibold text-foreground">
