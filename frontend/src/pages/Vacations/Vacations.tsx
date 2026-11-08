@@ -433,26 +433,12 @@ type="button"
 onClick={() => setModalOpen(true)}
 
 className="
-
-                  h-11
-
-                  rounded-xl
-
-                  bg-primary
-
-                  px-5
-
-                  text-xs
-
-                  font-semibold
-
-                  text-white
-
-                  transition-opacity
-
-                  hover:opacity-90
-
-                "
+flex h-11 w-full items-center justify-center gap-2
+                rounded-xl bg-blue-600 px-5
+                text-xs font-semibold text-white
+                shadow-[0_6px_15px_rgba(37,99,235,0.18)]
+                transition hover:bg-blue-700
+                sm:w-auto"
 
               >
 

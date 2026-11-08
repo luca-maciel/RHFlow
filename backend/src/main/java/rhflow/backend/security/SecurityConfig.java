@@ -19,74 +19,81 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            RhflowJwtAuthenticationConverter jwtConverter) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(
+                        HttpSecurity http,
+                        RhflowJwtAuthenticationConverter jwtConverter) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(
-                        SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
+                http
+                                .csrf(csrf -> csrf.disable())
+                                .cors(Customizer.withDefaults())
+                                .sessionManagement(session -> session.sessionCreationPolicy(
+                                                SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
 
-                        // Endpoint público
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/auth/login")
-                        .permitAll()
+                                                // Endpoint público
+                                                .requestMatchers(
+                                                                HttpMethod.POST,
+                                                                "/auth/login")
+                                                .permitAll()
 
-                        // Usuários
-                        .requestMatchers("/usuarios/**")
-                        .hasAnyAuthority(
-                                "USUARIOS_VISUALIZAR",
-                                "USUARIOS_GERENCIAR")
+                                                // Usuários
+                                                .requestMatchers("/usuarios/**")
+                                                .hasAnyAuthority(
+                                                                "USUARIOS_VISUALIZAR",
+                                                                "USUARIOS_GERENCIAR")
 
-                        // Perfis
-                        .requestMatchers("/perfis/**")
-                        .hasAnyAuthority(
-                                "PERFIS_VISUALIZAR",
-                                "PERFIS_GERENCIAR")
+                                                // Perfis
+                                                .requestMatchers("/perfis/**")
+                                                .hasAnyAuthority(
+                                                                "PERFIS_VISUALIZAR",
+                                                                "PERFIS_GERENCIAR")
 
-                        // Permissões
-                        .requestMatchers("/permissoes/**")
-                        .hasAnyAuthority(
-                                "PERMISSOES_VISUALIZAR",
-                                "PERMISSOES_GERENCIAR")
+                                                // Permissões
+                                                .requestMatchers("/permissoes/**")
+                                                .hasAnyAuthority(
+                                                                "PERMISSOES_VISUALIZAR",
+                                                                "PERMISSOES_GERENCIAR")
 
-                        // Obrigatoriamente por último
-                        .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)))
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(
-                                new BearerTokenAuthenticationEntryPoint())
-                        .accessDeniedHandler(
-                                new BearerTokenAccessDeniedHandler()));
+                                                // Obrigatoriamente por último
+                                                .anyRequest().authenticated())
+                                .oauth2ResourceServer(
+                                                oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)))
+                                .exceptionHandling(exceptions -> exceptions
+                                                .authenticationEntryPoint(
+                                                                new BearerTokenAuthenticationEntryPoint())
+                                                .accessDeniedHandler(
+                                                                new BearerTokenAccessDeniedHandler()));
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public UrlBasedCorsConfigurationSource corsConfigurationSource() {
+        @Bean
+        public UrlBasedCorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration config = new CorsConfiguration();
+                CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(
-                List.of("http://localhost:5173", "http://localhost:8080", "http://192.168.137.37:5173", "http://192.168.137.37:8080", "http://192.168.140.194:5173", "http://192.168.140.194:8080", "http://192.168.0.15:5173", "http://192.168.0.15:8080", "http://192.168.141.93:5173", "http://192.168.141.93:8080", "http://192.168.0.21:5173", "http://192.168.0.21:8080"));
+                config.setAllowedOrigins(
+                                List.of("http://localhost:5173", "http://localhost:8080", "http://192.168.137.37:5173",
+                                                "http://192.168.137.37:8080", "http://192.168.140.194:5173",
+                                                "http://192.168.140.194:8080", "http://192.168.0.15:5173",
+                                                "http://192.168.0.15:8080", "http://192.168.141.93:5173",
+                                                "http://192.168.141.93:8080", "http://192.168.0.21:5173",
+                                                "http://192.168.0.21:8080", "http://192.168.0.20:5173",
+                                                "http://192.168.0.20:8080"));
 
-        config.setAllowedMethods(
-                List.of(
-                        "GET", "POST", "PUT",
-                        "PATCH", "DELETE", "OPTIONS"));
+                config.setAllowedMethods(
+                                List.of(
+                                                "GET", "POST", "PUT",
+                                                "PATCH", "DELETE", "OPTIONS"));
 
-        config.setAllowedHeaders(
-                List.of("Authorization", "Content-Type"));
+                config.setAllowedHeaders(
+                                List.of("Authorization", "Content-Type"));
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration("/**", config);
+                source.registerCorsConfiguration("/**", config);
 
-        return source;
-    }
+                return source;
+        }
 }

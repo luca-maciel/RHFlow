@@ -38,4 +38,14 @@ public interface UsuarioRepository
             """, nativeQuery = true)
     Set<String> findPermissoesEfetivas(
             @Param("usuarioId") UUID usuarioId);
+
+    @Query("""
+    SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END
+    FROM Usuario u
+    JOIN u.perfis p
+    WHERE UPPER(p.nome) = UPPER(:perfilNome)
+""")
+boolean existsByPerfilNomeIgnoreCase(
+    @Param("perfilNome") String perfilNome
+);
 }

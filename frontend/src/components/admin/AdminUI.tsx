@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 export const field =
   "w-full h-11 rounded-xl border border-app-border bg-surface-secondary px-3 text-sm text-foreground outline-none transition-all duration-200 hover:border-primary/35 focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-50";
 export const primary =
-  "inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-primary-hover hover:shadow-md active:scale-[0.98] disabled:opacity-50";
+  "flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-xs font-semibold text-white shadow-[0_6px_15px_rgba(37,99,235,0.18)] transition hover:bg-blue-700 sm:w-auto";
 export const secondary =
   "inline-flex min-h-10 items-center justify-center rounded-xl border border-app-border px-4 text-sm font-medium text-foreground transition-all duration-200 hover:border-primary/30 hover:bg-surface-hover active:scale-[0.98] disabled:opacity-50";
 export function Modal({
