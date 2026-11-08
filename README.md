@@ -1,4 +1,4 @@
-@ Windows
+# Windows
 
 $env:RHFLOW_ADMIN_NAME="Administrador"
 $env:RHFLOW_ADMIN_EMAIL="admin@rhflow.local"
