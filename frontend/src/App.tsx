@@ -161,7 +161,7 @@ export default function App() {
         <Route
           element={
             <PermissionRoute
-              permissions={["FERIAS_VISUALIZAR", "FERIAS_GERENCIAR"]}
+              permissions={["FERIAS_VISUALIZAR", "FERIAS_GERENCIAR", "FERIAS_SOLICITAR"]}
             />
           }
         >
