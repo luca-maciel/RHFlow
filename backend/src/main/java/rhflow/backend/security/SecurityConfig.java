@@ -74,13 +74,7 @@ public class SecurityConfig {
                 CorsConfiguration config = new CorsConfiguration();
 
                 config.setAllowedOrigins(
-                                List.of("http://localhost:5173", "http://localhost:8080", "http://192.168.137.37:5173",
-                                                "http://192.168.137.37:8080", "http://192.168.140.194:5173",
-                                                "http://192.168.140.194:8080", "http://192.168.0.15:5173",
-                                                "http://192.168.0.15:8080", "http://192.168.141.93:5173",
-                                                "http://192.168.141.93:8080", "http://192.168.0.21:5173",
-                                                "http://192.168.0.21:8080", "http://192.168.0.20:5173",
-                                                "http://192.168.0.20:8080"));
+                                List.of("*"));
 
                 config.setAllowedMethods(
                                 List.of(
