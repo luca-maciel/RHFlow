@@ -3,7 +3,6 @@ package rhflow.backend.repository.postgresql;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
 import rhflow.backend.entity.postgresql.Ferias;
 import rhflow.backend.enums.StatusFerias;
 
@@ -11,35 +10,49 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-public interface FeriasRepository
-        extends JpaRepository<Ferias, UUID> {
+public interface FeriasRepository extends JpaRepository<Ferias, UUID> {
 
-    List<Ferias> findByFuncionarioIdOrderByInicioGozoDesc(
-            UUID funcionarioId
-    );
+    List<Ferias> findByFuncionarioIdOrderByInicioGozoDesc(UUID funcionarioId);
 
-    List<Ferias> findByStatus(
-            StatusFerias status
-    );
+    List<Ferias> findByStatus(StatusFerias status);
 
-    List<Ferias>
-    findByInicioGozoBetweenOrderByInicioGozo(
-            LocalDate inicio,
-            LocalDate fim
+    List<Ferias> findByInicioGozoBetweenOrderByInicioGozo(LocalDate inicio, LocalDate fim);
+
+    @Query("""
+        SELECT f
+        FROM Ferias f
+        JOIN FETCH f.funcionario
+        WHERE f.status IN :status
+    """)
+    List<Ferias> findByStatusInWithFuncionario(@Param("status") List<StatusFerias> status);
+
+    @Query("""
+        SELECT COUNT(f) > 0
+        FROM Ferias f
+        WHERE f.funcionario.id = :funcionarioId
+          AND f.status IN :status
+          AND f.inicioGozo <= :fimGozo
+          AND f.fimGozo >= :inicioGozo
+    """)
+    boolean existsPeriodoSobreposto(
+            @Param("funcionarioId") UUID funcionarioId,
+            @Param("inicioGozo") LocalDate inicioGozo,
+            @Param("fimGozo") LocalDate fimGozo,
+            @Param("status") List<StatusFerias> status
     );
 
     @Query("""
-    SELECT COUNT(f) > 0
-    FROM Ferias f
-    WHERE f.funcionario.id = :funcionarioId
-      AND f.status IN :status
-      AND f.inicioGozo <= :fimGozo
-      AND f.fimGozo >= :inicioGozo
-""")
-boolean existsPeriodoSobreposto(
-        @Param("funcionarioId") UUID funcionarioId,
-        @Param("inicioGozo") LocalDate inicioGozo,
-        @Param("fimGozo") LocalDate fimGozo,
-        @Param("status") List<StatusFerias> status
-);
+        SELECT COALESCE(SUM(f.quantidadeDias), 0)
+        FROM Ferias f
+        WHERE f.funcionario.id = :funcionarioId
+          AND f.inicioPeriodoAquisitivo = :inicioPeriodo
+          AND f.fimPeriodoAquisitivo = :fimPeriodo
+          AND f.status IN :status
+    """)
+    int sumDiasUtilizadosNoPeriodo(
+            @Param("funcionarioId") UUID funcionarioId,
+            @Param("inicioPeriodo") LocalDate inicioPeriodo,
+            @Param("fimPeriodo") LocalDate fimPeriodo,
+            @Param("status") List<StatusFerias> status
+    );
 }

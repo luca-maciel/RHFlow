@@ -7,50 +7,40 @@ import java.time.LocalDate;
 
 public class MinhasFeriasRequest {
 
-    @NotNull
     private LocalDate inicioPeriodoAquisitivo;
 
-    @NotNull
     private LocalDate fimPeriodoAquisitivo;
 
-    @NotNull
+    @NotNull(message = "A data de início das férias é obrigatória.")
     private LocalDate inicioGozo;
 
-    @NotNull
+    @NotNull(message = "A data de término das férias é obrigatória.")
     private LocalDate fimGozo;
 
-    @Size(max = 500)
+    @Size(max = 500, message = "A observação deve ter no máximo 500 caracteres.")
     private String observacao;
 
     public LocalDate getInicioPeriodoAquisitivo() {
         return inicioPeriodoAquisitivo;
     }
 
-    public void setInicioPeriodoAquisitivo(
-            LocalDate inicioPeriodoAquisitivo
-    ) {
-        this.inicioPeriodoAquisitivo =
-                inicioPeriodoAquisitivo;
+    public void setInicioPeriodoAquisitivo(LocalDate inicioPeriodoAquisitivo) {
+        this.inicioPeriodoAquisitivo = inicioPeriodoAquisitivo;
     }
 
     public LocalDate getFimPeriodoAquisitivo() {
         return fimPeriodoAquisitivo;
     }
 
-    public void setFimPeriodoAquisitivo(
-            LocalDate fimPeriodoAquisitivo
-    ) {
-        this.fimPeriodoAquisitivo =
-                fimPeriodoAquisitivo;
+    public void setFimPeriodoAquisitivo(LocalDate fimPeriodoAquisitivo) {
+        this.fimPeriodoAquisitivo = fimPeriodoAquisitivo;
     }
 
     public LocalDate getInicioGozo() {
         return inicioGozo;
     }
 
-    public void setInicioGozo(
-            LocalDate inicioGozo
-    ) {
+    public void setInicioGozo(LocalDate inicioGozo) {
         this.inicioGozo = inicioGozo;
     }
 
@@ -58,9 +48,7 @@ public class MinhasFeriasRequest {
         return fimGozo;
     }
 
-    public void setFimGozo(
-            LocalDate fimGozo
-    ) {
+    public void setFimGozo(LocalDate fimGozo) {
         this.fimGozo = fimGozo;
     }
 
@@ -68,9 +56,7 @@ public class MinhasFeriasRequest {
         return observacao;
     }
 
-    public void setObservacao(
-            String observacao
-    ) {
+    public void setObservacao(String observacao) {
         this.observacao = observacao;
     }
 }

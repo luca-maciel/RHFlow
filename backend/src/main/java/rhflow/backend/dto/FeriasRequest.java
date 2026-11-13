@@ -8,22 +8,20 @@ import java.util.UUID;
 
 public class FeriasRequest {
 
-    @NotNull
+    @NotNull(message = "O funcionário é obrigatório.")
     private UUID funcionarioId;
 
-    @NotNull
     private LocalDate inicioPeriodoAquisitivo;
 
-    @NotNull
     private LocalDate fimPeriodoAquisitivo;
 
-    @NotNull
+    @NotNull(message = "A data de início das férias é obrigatória.")
     private LocalDate inicioGozo;
 
-    @NotNull
+    @NotNull(message = "A data de término das férias é obrigatória.")
     private LocalDate fimGozo;
 
-    @Size(max = 500)
+    @Size(max = 500, message = "A observação deve ter no máximo 500 caracteres.")
     private String observacao;
 
     public UUID getFuncionarioId() {

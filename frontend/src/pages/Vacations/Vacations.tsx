@@ -1,5 +1,10 @@
-
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import axios from "axios";
 import {
   CalendarDays,
@@ -9,6 +14,7 @@ import {
   MoreHorizontal,
   Palmtree,
   Play,
+  RotateCcw,
   Search,
   X,
 } from "lucide-react";
@@ -20,6 +26,7 @@ import VacationModal from "../../components/vacations/VacationModal";
 import employeeService from "../../services/employeeService";
 import type { Employee } from "../../types/employee";
 import type {
+  AcquisitivePeriodSummary,
   MyVacationRequest,
   Vacation,
   VacationRequest,
@@ -42,6 +49,7 @@ function formatDate(value: string | null | undefined) {
   const [year, month, day] = value.split("-");
   return `${day}/${month}/${year}`;
 }
+
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) {
@@ -49,6 +57,7 @@ function initials(name: string) {
   }
   return (parts[0][0] + parts.at(-1)![0]).toUpperCase();
 }
+
 function getErrorMessage(error: unknown, fallback: string) {
   if (!axios.isAxiosError(error)) {
     return fallback;
@@ -78,17 +87,18 @@ export default function Vacations() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<VacationFilter>("TODAS");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+
   const canManage = hasPermission("FERIAS_GERENCIAR");
-  const canRequest =
-    hasPermission("FERIAS_SOLICITAR") || canManage;
-  const canApprove =
-    hasPermission("FERIAS_APROVAR") || canManage;
+  const canRequest = hasPermission("FERIAS_SOLICITAR") || canManage;
+  const canApprove = hasPermission("FERIAS_APROVAR") || canManage;
   const canViewAll =
     hasPermission("FERIAS_VISUALIZAR") ||
     hasPermission("FERIAS_APROVAR") ||
     canManage;
+
   const selfOnly = !canViewAll && canRequest;
   const requestForSelf = canRequest && !canManage;
+
   async function loadVacations() {
     try {
       setLoading(true);
@@ -120,9 +130,11 @@ export default function Vacations() {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     void loadVacations();
   }, [canViewAll, canManage, canRequest]);
+
   const requestedCount = useMemo(
     () =>
       vacations.filter((vacation) => vacation.status === "SOLICITADA").length,
@@ -141,6 +153,7 @@ export default function Vacations() {
       vacations.filter((vacation) => vacation.status === "CONCLUIDA").length,
     [vacations],
   );
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return vacations.filter((vacation) => {
@@ -156,6 +169,7 @@ export default function Vacations() {
       ]
         .join(" ")
         .toLowerCase();
+
       const matchesSearch = query === "" || searchableText.includes(query);
       let matchesFilter = true;
       if (filter === "HISTORICO") {
@@ -166,9 +180,10 @@ export default function Vacations() {
       return matchesSearch && matchesFilter;
     });
   }, [vacations, search, filter]);
+
   async function executeAction(
     vacation: Vacation,
-    action: "approve" | "reject" | "start" | "complete" | "cancel",
+    action: "approve" | "reject" | "revert" | "start" | "complete" | "cancel",
   ) {
     try {
       setActionLoading(vacation.id);
@@ -181,6 +196,9 @@ export default function Vacations() {
           break;
         case "reject":
           updated = await vacationService.reject(vacation.id);
+          break;
+        case "revert":
+          updated = await vacationService.revert(vacation.id);
           break;
         case "start":
           updated = await vacationService.start(vacation.id);
@@ -202,6 +220,7 @@ export default function Vacations() {
       setActionLoading(null);
     }
   }
+
   async function requestVacation(data: VacationRequest) {
     try {
       setSaving(true);
@@ -216,6 +235,7 @@ export default function Vacations() {
       setSaving(false);
     }
   }
+
   async function requestMyVacation(data: MyVacationRequest) {
     try {
       setSaving(true);
@@ -225,11 +245,14 @@ export default function Vacations() {
       setModalOpen(false);
     } catch (error) {
       console.error(error);
-      setError(getErrorMessage(error, "Não foi possível solicitar suas férias."));
+      setError(
+        getErrorMessage(error, "Não foi possível solicitar suas férias."),
+      );
     } finally {
       setSaving(false);
     }
   }
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -257,17 +280,19 @@ export default function Vacations() {
                 type="button"
                 onClick={() => setModalOpen(true)}
                 className="
-flex h-11 w-full items-center justify-center gap-2
-                rounded-xl bg-blue-600 px-5
-                text-xs font-semibold text-white
-                shadow-[0_6px_15px_rgba(37,99,235,0.18)]
-                transition hover:bg-blue-700
-                sm:w-auto"
+                  flex h-11 w-full items-center justify-center gap-2
+                  rounded-xl bg-blue-600 px-5
+                  text-xs font-semibold text-white
+                  shadow-[0_6px_15px_rgba(37,99,235,0.18)]
+                  transition hover:bg-blue-700
+                  sm:w-auto
+                "
               >
                 {selfOnly ? "Solicitar férias" : "Nova solicitação"}
               </button>
             )}
           </section>
+
           {error && (
             <div className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-app-border bg-surface p-4">
               <p className="text-xs text-danger">{error}</p>
@@ -280,48 +305,50 @@ flex h-11 w-full items-center justify-center gap-2
               </button>
             </div>
           )}
+
           {!selfOnly && (
-          <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <VacationStatCard
-              title="Solicitadas"
-              value={loading ? "..." : requestedCount}
-              description="Aguardando análise"
-              icon={<Clock3 size={18} />}
-              active={filter === "SOLICITADA"}
-              onClick={() =>
-                setFilter(filter === "SOLICITADA" ? "TODAS" : "SOLICITADA")
-              }
-            />
-            <VacationStatCard
-              title="Aprovadas"
-              value={loading ? "..." : approvedCount}
-              description="Aguardando início"
-              icon={<CircleCheck size={18} />}
-              active={filter === "APROVADA"}
-              onClick={() =>
-                setFilter(filter === "APROVADA" ? "TODAS" : "APROVADA")
-              }
-            />
-            <VacationStatCard
-              title="Em gozo"
-              value={loading ? "..." : ongoingCount}
-              description="Férias em andamento"
-              icon={<Palmtree size={18} />}
-              active={filter === "EM_GOZO"}
-              onClick={() =>
-                setFilter(filter === "EM_GOZO" ? "TODAS" : "EM_GOZO")
-              }
-            />
-            <VacationStatCard
-              title="Concluídas"
-              value={loading ? "..." : completedCount}
-              description="Períodos finalizados"
-              icon={<Check size={18} />}
-              active={filter === "HISTORICO"}
-              onClick={() => setFilter("HISTORICO")}
-            />
-          </section>
+            <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <VacationStatCard
+                title="Solicitadas"
+                value={loading ? "..." : requestedCount}
+                description="Aguardando análise"
+                icon={<Clock3 size={18} />}
+                active={filter === "SOLICITADA"}
+                onClick={() =>
+                  setFilter(filter === "SOLICITADA" ? "TODAS" : "SOLICITADA")
+                }
+              />
+              <VacationStatCard
+                title="Aprovadas"
+                value={loading ? "..." : approvedCount}
+                description="Aguardando início"
+                icon={<CircleCheck size={18} />}
+                active={filter === "APROVADA"}
+                onClick={() =>
+                  setFilter(filter === "APROVADA" ? "TODAS" : "APROVADA")
+                }
+              />
+              <VacationStatCard
+                title="Em gozo"
+                value={loading ? "..." : ongoingCount}
+                description="Férias em andamento"
+                icon={<Palmtree size={18} />}
+                active={filter === "EM_GOZO"}
+                onClick={() =>
+                  setFilter(filter === "EM_GOZO" ? "TODAS" : "EM_GOZO")
+                }
+              />
+              <VacationStatCard
+                title="Concluídas"
+                value={loading ? "..." : completedCount}
+                description="Períodos finalizados"
+                icon={<Check size={18} />}
+                active={filter === "HISTORICO"}
+                onClick={() => setFilter("HISTORICO")}
+              />
+            </section>
           )}
+
           {selfOnly ? (
             <MyVacationsPanel
               vacations={filtered}
@@ -332,249 +359,262 @@ flex h-11 w-full items-center justify-center gap-2
               onRequest={() => setModalOpen(true)}
             />
           ) : (
-          <section className="overflow-hidden rounded-2xl border border-app-border bg-surface">
-            <div className="overflow-x-auto border-b border-app-border">
-              <div className="flex min-w-max px-4 sm:px-5">
-                <FilterTab
-                  active={filter === "TODAS"}
-                  label="Todas"
-                  onClick={() => setFilter("TODAS")}
-                />
-                <FilterTab
-                  active={filter === "SOLICITADA"}
-                  label="Solicitadas"
-                  count={requestedCount}
-                  onClick={() => setFilter("SOLICITADA")}
-                />
-                <FilterTab
-                  active={filter === "APROVADA"}
-                  label="Aprovadas"
-                  count={approvedCount}
-                  onClick={() => setFilter("APROVADA")}
-                />
-                <FilterTab
-                  active={filter === "EM_GOZO"}
-                  label="Em gozo"
-                  count={ongoingCount}
-                  onClick={() => setFilter("EM_GOZO")}
-                />
-                <FilterTab
-                  active={filter === "HISTORICO"}
-                  label="Histórico"
-                  onClick={() => setFilter("HISTORICO")}
-                />
-              </div>
-            </div>
-            <div className="border-b border-app-border p-4 sm:p-5">
-              <div className="relative w-full max-w-[420px]">
-                <Search
-                  size={15}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-light"
-                />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder={requestForSelf ? "Pesquisar status ou período..." : "Pesquisar funcionário..."}
-                  className="
-                    h-10
-                    w-full
-                    rounded-xl
-                    border
-                    border-app-border
-                    bg-background
-                    pl-10
-                    pr-4
-                    text-xs
-                    text-foreground
-                    outline-none
-                    transition-colors
-                    placeholder:text-muted-light
-                    focus:border-primary
-                  "
-                />
-              </div>
-              <p className="mt-4 text-[11px] text-muted-light">
-                {filtered.length}{" "}
-                {filtered.length === 1
-                  ? "registro encontrado"
-                  : "registros encontrados"}
-              </p>
-            </div>
-            {loading ? (
-              <div className="py-16 text-center text-xs text-muted">
-                Carregando férias...
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-icon-surface text-muted">
-                  <CalendarDays size={19} />
+            <section className="overflow-hidden rounded-2xl border border-app-border bg-surface">
+              <div className="overflow-x-auto border-b border-app-border">
+                <div className="flex min-w-max px-4 sm:px-5">
+                  <FilterTab
+                    active={filter === "TODAS"}
+                    label="Todas"
+                    onClick={() => setFilter("TODAS")}
+                  />
+                  <FilterTab
+                    active={filter === "SOLICITADA"}
+                    label="Solicitadas"
+                    count={requestedCount}
+                    onClick={() => setFilter("SOLICITADA")}
+                  />
+                  <FilterTab
+                    active={filter === "APROVADA"}
+                    label="Aprovadas"
+                    count={approvedCount}
+                    onClick={() => setFilter("APROVADA")}
+                  />
+                  <FilterTab
+                    active={filter === "EM_GOZO"}
+                    label="Em gozo"
+                    count={ongoingCount}
+                    onClick={() => setFilter("EM_GOZO")}
+                  />
+                  <FilterTab
+                    active={filter === "HISTORICO"}
+                    label="Histórico"
+                    onClick={() => setFilter("HISTORICO")}
+                  />
                 </div>
-                <p className="text-xs font-semibold text-foreground">
-                  Nenhum registro encontrado
-                </p>
-                <p className="mt-1 text-[10px] text-muted">
-                  Não existem férias correspondentes aos filtros selecionados.
+              </div>
+
+              <div className="border-b border-app-border p-4 sm:p-5">
+                <div className="relative w-full max-w-[420px]">
+                  <Search
+                    size={15}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-light"
+                  />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder={
+                      requestForSelf
+                        ? "Pesquisar status ou período..."
+                        : "Pesquisar funcionário..."
+                    }
+                    className="
+                      h-10
+                      w-full
+                      rounded-xl
+                      border
+                      border-app-border
+                      bg-background
+                      pl-10
+                      pr-4
+                      text-xs
+                      text-foreground
+                      outline-none
+                      transition-colors
+                      placeholder:text-muted-light
+                      focus:border-primary
+                    "
+                  />
+                </div>
+                <p className="mt-4 text-[11px] text-muted-light">
+                  {filtered.length}{" "}
+                  {filtered.length === 1
+                    ? "registro encontrado"
+                    : "registros encontrados"}
                 </p>
               </div>
-            ) : (
-              <>
-                <div className="hidden overflow-x-auto md:block">
-                  <table className="w-full min-w-[950px]">
-                    <thead>
-                      <tr className="border-b border-app-border bg-background/70">
-                        <TableHeader>Funcionário</TableHeader>
-                        <TableHeader>Período aquisitivo</TableHeader>
-                        <TableHeader>Período de férias</TableHeader>
-                        <TableHeader>Dias</TableHeader>
-                        <TableHeader>Status</TableHeader>
-                        <TableHeader right>Ações</TableHeader>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((vacation) => (
-                        <tr
-                          key={vacation.id}
-                          className="border-b border-app-border transition-colors last:border-0 hover:bg-background/70"
-                        >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-icon-surface text-[11px] font-bold text-primary">
-                                {initials(vacation.funcionarioNome)}
+
+              {loading ? (
+                <div className="py-16 text-center text-xs text-muted">
+                  Carregando férias...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-icon-surface text-muted">
+                    <CalendarDays size={19} />
+                  </div>
+                  <p className="text-xs font-semibold text-foreground">
+                    Nenhum registro encontrado
+                  </p>
+                  <p className="mt-1 text-[10px] text-muted">
+                    Não existem férias correspondentes aos filtros selecionados.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="hidden overflow-x-auto md:block">
+                    <table className="w-full min-w-[950px]">
+                      <thead>
+                        <tr className="border-b border-app-border bg-background/70">
+                          <TableHeader>Funcionário</TableHeader>
+                          <TableHeader>Período aquisitivo</TableHeader>
+                          <TableHeader>Período de férias</TableHeader>
+                          <TableHeader>Dias</TableHeader>
+                          <TableHeader>Status</TableHeader>
+                          <TableHeader right>Ações</TableHeader>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((vacation) => (
+                          <tr
+                            key={vacation.id}
+                            className="border-b border-app-border transition-colors last:border-0 hover:bg-background/70"
+                          >
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-icon-surface text-[11px] font-bold text-primary">
+                                  {initials(vacation.funcionarioNome)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate text-xs font-semibold text-foreground">
+                                    {vacation.funcionarioNome}
+                                  </p>
+                                  <p className="mt-0.5 text-[10px] text-muted-light">
+                                    {vacation.quantidadeDias}{" "}
+                                    {vacation.quantidadeDias === 1
+                                      ? "dia"
+                                      : "dias"}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="min-w-0">
-                                <p className="truncate text-xs font-semibold text-foreground">
-                                  {vacation.funcionarioNome}
-                                </p>
-                                <p className="mt-0.5 text-[10px] text-muted-light">
-                                  {vacation.quantidadeDias}{" "}
-                                  {vacation.quantidadeDias === 1
-                                    ? "dia"
-                                    : "dias"}
-                                </p>
-                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <p className="text-xs text-muted">
+                                {formatDate(vacation.inicioPeriodoAquisitivo)}
+                              </p>
+                              <p className="mt-0.5 text-[10px] text-muted-light">
+                                até {formatDate(vacation.fimPeriodoAquisitivo)}
+                              </p>
+                            </td>
+                            <td className="px-5 py-4">
+                              <p className="text-xs font-medium text-foreground">
+                                {formatDate(vacation.inicioGozo)}
+                              </p>
+                              <p className="mt-0.5 text-[10px] text-muted-light">
+                                até {formatDate(vacation.fimGozo)}
+                              </p>
+                            </td>
+                            <td className="px-5 py-4 text-xs text-muted">
+                              {vacation.quantidadeDias}
+                            </td>
+                            <td className="px-5 py-4">
+                              <VacationBadge status={vacation.status} />
+                            </td>
+                            <td className="relative px-5 py-4 text-right">
+                              <VacationActions
+                                vacation={vacation}
+                                open={openMenu === vacation.id}
+                                loading={actionLoading === vacation.id}
+                                canApprove={canApprove}
+                                canManage={canManage}
+                                onToggle={() =>
+                                  setOpenMenu(
+                                    openMenu === vacation.id
+                                      ? null
+                                      : vacation.id,
+                                  )
+                                }
+                                onAction={(action) =>
+                                  void executeAction(vacation, action)
+                                }
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex flex-col gap-4 p-4 md:hidden">
+                    {filtered.map((vacation) => (
+                      <article
+                        key={vacation.id}
+                        className="rounded-2xl border border-app-border p-4"
+                      >
+                        <div className="mb-4 flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-icon-surface text-[11px] font-bold text-primary">
+                              {initials(vacation.funcionarioNome)}
                             </div>
-                          </td>
-                          <td className="px-5 py-4">
-                            <p className="text-xs text-muted">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-sm font-semibold text-foreground">
+                                {vacation.funcionarioNome}
+                              </h3>
+                              <p className="text-[10px] text-muted-light">
+                                {vacation.quantidadeDias}{" "}
+                                {vacation.quantidadeDias === 1 ? "dia" : "dias"}
+                              </p>
+                            </div>
+                          </div>
+                          <VacationBadge status={vacation.status} />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 rounded-xl bg-background/70 p-3">
+                          <div>
+                            <p className="text-[9px] font-semibold uppercase text-muted-light">
+                              Período aquisitivo
+                            </p>
+                            <p className="mt-1 text-[11px] text-muted">
                               {formatDate(vacation.inicioPeriodoAquisitivo)}
                             </p>
-                            <p className="mt-0.5 text-[10px] text-muted-light">
+                            <p className="text-[10px] text-muted-light">
                               até {formatDate(vacation.fimPeriodoAquisitivo)}
                             </p>
-                          </td>
-                          <td className="px-5 py-4">
-                            <p className="text-xs font-medium text-foreground">
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-semibold uppercase text-muted-light">
+                              Férias
+                            </p>
+                            <p className="mt-1 text-[11px] font-medium text-foreground">
                               {formatDate(vacation.inicioGozo)}
                             </p>
-                            <p className="mt-0.5 text-[10px] text-muted-light">
+                            <p className="text-[10px] text-muted-light">
                               até {formatDate(vacation.fimGozo)}
                             </p>
-                          </td>
-                          <td className="px-5 py-4 text-xs text-muted">
-                            {vacation.quantidadeDias}
-                          </td>
-                          <td className="px-5 py-4">
-                            <VacationBadge status={vacation.status} />
-                          </td>
-                          <td className="relative px-5 py-4 text-right">
-                            <VacationActions
-                              vacation={vacation}
-                              open={openMenu === vacation.id}
-                              loading={actionLoading === vacation.id}
-                              canApprove={canApprove}
-                              canManage={canManage}
-                              onToggle={() =>
-                                setOpenMenu(
-                                  openMenu === vacation.id ? null : vacation.id,
-                                )
-                              }
-                              onAction={(action) =>
-                                void executeAction(vacation, action)
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex flex-col gap-4 p-4 md:hidden">
-                  {filtered.map((vacation) => (
-                    <article
-                      key={vacation.id}
-                      className="rounded-2xl border border-app-border p-4"
-                    >
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-icon-surface text-[11px] font-bold text-primary">
-                            {initials(vacation.funcionarioNome)}
                           </div>
-                          <div className="min-w-0">
-                            <h3 className="truncate text-sm font-semibold text-foreground">
-                              {vacation.funcionarioNome}
-                            </h3>
-                            <p className="text-[10px] text-muted-light">
-                              {vacation.quantidadeDias}{" "}
-                              {vacation.quantidadeDias === 1 ? "dia" : "dias"}
+                        </div>
+
+                        {vacation.observacao && (
+                          <div className="mt-3">
+                            <p className="text-[9px] font-semibold uppercase text-muted-light">
+                              Observação
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-muted">
+                              {vacation.observacao}
                             </p>
                           </div>
+                        )}
+
+                        <div className="mt-4 border-t border-app-border pt-4">
+                          <MobileActions
+                            vacation={vacation}
+                            loading={actionLoading === vacation.id}
+                            canApprove={canApprove}
+                            canManage={canManage}
+                            onAction={(action) =>
+                              void executeAction(vacation, action)
+                            }
+                          />
                         </div>
-                        <VacationBadge status={vacation.status} />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 rounded-xl bg-background/70 p-3">
-                        <div>
-                          <p className="text-[9px] font-semibold uppercase text-muted-light">
-                            Período aquisitivo
-                          </p>
-                          <p className="mt-1 text-[11px] text-muted">
-                            {formatDate(vacation.inicioPeriodoAquisitivo)}
-                          </p>
-                          <p className="text-[10px] text-muted-light">
-                            até {formatDate(vacation.fimPeriodoAquisitivo)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-semibold uppercase text-muted-light">
-                            Férias
-                          </p>
-                          <p className="mt-1 text-[11px] font-medium text-foreground">
-                            {formatDate(vacation.inicioGozo)}
-                          </p>
-                          <p className="text-[10px] text-muted-light">
-                            até {formatDate(vacation.fimGozo)}
-                          </p>
-                        </div>
-                      </div>
-                      {vacation.observacao && (
-                        <div className="mt-3">
-                          <p className="text-[9px] font-semibold uppercase text-muted-light">
-                            Observação
-                          </p>
-                          <p className="mt-1 text-xs leading-5 text-muted">
-                            {vacation.observacao}
-                          </p>
-                        </div>
-                      )}
-                      <div className="mt-4 border-t border-app-border pt-4">
-                        <MobileActions
-                          vacation={vacation}
-                          loading={actionLoading === vacation.id}
-                          canApprove={canApprove}
-                          canManage={canManage}
-                          onAction={(action) =>
-                            void executeAction(vacation, action)
-                          }
-                        />
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
           )}
         </div>
       </main>
+
       {canRequest &&
         (requestForSelf ? (
           <SelfVacationModal
@@ -636,13 +676,15 @@ function MyVacationsPanel({
       </div>
 
       <div className="flex flex-wrap gap-2 border-b border-app-border p-4 sm:px-6">
-        {([
-          ["TODAS", "Todas"],
-          ["SOLICITADA", "Em análise"],
-          ["APROVADA", "Aprovadas"],
-          ["EM_GOZO", "Em andamento"],
-          ["HISTORICO", "Histórico"],
-        ] as [VacationFilter, string][]).map(([value, label]) => (
+        {(
+          [
+            ["TODAS", "Todas"],
+            ["SOLICITADA", "Em análise"],
+            ["APROVADA", "Aprovadas"],
+            ["EM_GOZO", "Em andamento"],
+            ["HISTORICO", "Histórico"],
+          ] as [VacationFilter, string][]
+        ).map(([value, label]) => (
           <button
             key={value}
             type="button"
@@ -719,7 +761,8 @@ function MyVacationCard({ vacation }: { vacation: Vacation }) {
             {formatDate(vacation.inicioGozo)} – {formatDate(vacation.fimGozo)}
           </h3>
           <p className="mt-1 text-xs text-muted">
-            {vacation.quantidadeDias} {vacation.quantidadeDias === 1 ? "dia" : "dias"}
+            {vacation.quantidadeDias}{" "}
+            {vacation.quantidadeDias === 1 ? "dia" : "dias"}
           </p>
         </div>
         <VacationBadge status={vacation.status} />
@@ -727,10 +770,11 @@ function MyVacationCard({ vacation }: { vacation: Vacation }) {
 
       <div className="mt-4 rounded-xl bg-surface p-3">
         <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-light">
-          Período aquisitivo
+          Período aquisitivo vinculado
         </p>
         <p className="mt-1 text-xs text-foreground">
-          {formatDate(vacation.inicioPeriodoAquisitivo)} até {formatDate(vacation.fimPeriodoAquisitivo)}
+          {formatDate(vacation.inicioPeriodoAquisitivo)} até{" "}
+          {formatDate(vacation.fimPeriodoAquisitivo)}
         </p>
       </div>
 
@@ -763,74 +807,107 @@ function SelfVacationModal({
   onClose: () => void;
   onSubmit: (data: MyVacationRequest) => Promise<void> | void;
 }) {
-  const [inicioPeriodoAquisitivo, setInicioPeriodoAquisitivo] = useState("");
-  const [fimPeriodoAquisitivo, setFimPeriodoAquisitivo] = useState("");
   const [inicioGozo, setInicioGozo] = useState("");
   const [fimGozo, setFimGozo] = useState("");
   const [observacao, setObservacao] = useState("");
   const [formError, setFormError] = useState("");
+  const [periodSummary, setPeriodSummary] =
+    useState<AcquisitivePeriodSummary | null>(null);
+  const [loadingPeriod, setLoadingPeriod] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
-    setInicioPeriodoAquisitivo("");
-    setFimPeriodoAquisitivo("");
     setInicioGozo("");
     setFimGozo("");
     setObservacao("");
     setFormError("");
+
+    let cancelled = false;
+
+    async function loadMyPeriod() {
+      try {
+        setLoadingPeriod(true);
+        const summary = await vacationService.getMyAcquisitivePeriod();
+        if (!cancelled) {
+          setPeriodSummary(summary);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPeriodSummary(null);
+          setFormError(
+            getErrorMessage(
+              err,
+              "Não foi possível carregar o período aquisitivo.",
+            ),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingPeriod(false);
+        }
+      }
+    }
+
+    void loadMyPeriod();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
+
   if (!isOpen) return null;
+
   function inclusiveDays(start: string, end: string) {
     if (!start || !end) return 0;
     const startDate = new Date(`${start}T00:00:00`);
     const endDate = new Date(`${end}T00:00:00`);
-    return Math.floor(
-      (endDate.getTime() - startDate.getTime()) / 86_400_000,
-    ) + 1;
+    return (
+      Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1
+    );
   }
+
   const quantityDays = inclusiveDays(inicioGozo, fimGozo);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
-    if (
-      !inicioPeriodoAquisitivo ||
-      !fimPeriodoAquisitivo ||
-      !inicioGozo ||
-      !fimGozo
-    ) {
-      setFormError("Preencha todos os campos obrigatórios.");
+
+    if (!inicioGozo || !fimGozo) {
+      setFormError("Informe as datas de início e fim das férias.");
       return;
     }
-    if (fimPeriodoAquisitivo < inicioPeriodoAquisitivo) {
-      setFormError(
-        "O fim do período aquisitivo não pode ser anterior ao início.",
-      );
-      return;
-    }
+
     if (fimGozo < inicioGozo) {
       setFormError("O fim das férias não pode ser anterior ao início.");
       return;
     }
+
     if (quantityDays < 1 || quantityDays > 30) {
       setFormError("O período de férias deve possuir entre 1 e 30 dias.");
       return;
     }
+
     await onSubmit({
-      inicioPeriodoAquisitivo,
-      fimPeriodoAquisitivo,
+      inicioPeriodoAquisitivo: periodSummary?.inicioPeriodoAquisitivo,
+      fimPeriodoAquisitivo: periodSummary?.fimPeriodoAquisitivo,
       inicioGozo,
       fimGozo,
       observacao: observacao.trim() || undefined,
     });
   }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-[620px] overflow-hidden rounded-2xl border border-app-border bg-surface shadow-2xl">
+      <div className="w-full max-w-[580px] overflow-hidden rounded-2xl border border-app-border bg-surface shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-app-border p-5 sm:p-6">
           <div>
-            <p className="mb-1 text-xs font-medium text-primary">Minhas férias</p>
-            <h2 className="text-lg font-bold text-foreground">Nova solicitação</h2>
+            <p className="mb-1 text-xs font-medium text-primary">
+              Minhas férias
+            </p>
+            <h2 className="text-lg font-bold text-foreground">
+              Nova solicitação
+            </h2>
             <p className="mt-1 text-xs text-muted">
-              A solicitação será vinculada automaticamente ao seu funcionário.
+              Confira seu período aquisitivo e escolha as datas de descanso.
             </p>
           </div>
           <button
@@ -843,6 +920,7 @@ function SelfVacationModal({
             <X size={18} />
           </button>
         </div>
+
         <form onSubmit={handleSubmit}>
           <div className="max-h-[70vh] overflow-y-auto p-5 sm:p-6">
             {formError && (
@@ -850,32 +928,82 @@ function SelfVacationModal({
                 {formError}
               </div>
             )}
+
+            {loadingPeriod && (
+              <div className="mb-5 rounded-xl border border-app-border bg-background/60 p-3.5 text-xs text-muted">
+                Consultando seu período aquisitivo...
+              </div>
+            )}
+
+            {!loadingPeriod && periodSummary && (
+              <div className="mb-5 rounded-xl border border-primary/30 bg-icon-surface/60 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    Seu período aquisitivo atual
+                  </span>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                      periodSummary.direitoAdquirido
+                        ? "bg-emerald-500/10 text-emerald-600"
+                        : "bg-amber-500/10 text-amber-600"
+                    }`}
+                  >
+                    {periodSummary.direitoAdquirido
+                      ? "Direito adquirido"
+                      : "Em aquisição (12 meses)"}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase text-muted-light">
+                      Período aquisitivo
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-foreground">
+                      {formatDate(periodSummary.inicioPeriodoAquisitivo)} até{" "}
+                      {formatDate(periodSummary.fimPeriodoAquisitivo)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase text-muted-light">
+                      Período concessivo
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-foreground">
+                      {formatDate(periodSummary.inicioPeriodoConcessivo)} até{" "}
+                      {formatDate(periodSummary.fimPeriodoConcessivo)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase text-muted-light">
+                      Saldo disponível
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-primary">
+                      {periodSummary.saldoDisponivel} de 30 dias
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-5 sm:grid-cols-2">
-              <SelfDateField
-                label="Início do período aquisitivo"
-                value={inicioPeriodoAquisitivo}
-                onChange={setInicioPeriodoAquisitivo}
-                disabled={loading}
-              />
-              <SelfDateField
-                label="Fim do período aquisitivo"
-                value={fimPeriodoAquisitivo}
-                onChange={setFimPeriodoAquisitivo}
-                disabled={loading}
-              />
               <SelfDateField
                 label="Início das férias"
                 value={inicioGozo}
+                min={periodSummary?.inicioPeriodoConcessivo}
+                max={periodSummary?.fimPeriodoConcessivo}
                 onChange={setInicioGozo}
                 disabled={loading}
               />
               <SelfDateField
                 label="Fim das férias"
                 value={fimGozo}
+                min={inicioGozo || periodSummary?.inicioPeriodoConcessivo}
+                max={periodSummary?.fimPeriodoConcessivo}
                 onChange={setFimGozo}
                 disabled={loading}
               />
             </div>
+
             {inicioGozo && fimGozo && quantityDays > 0 && (
               <div className="mt-5 flex items-center gap-3 rounded-xl bg-icon-surface p-3">
                 <CalendarDays size={16} className="text-primary" />
@@ -887,6 +1015,7 @@ function SelfVacationModal({
                 </p>
               </div>
             )}
+
             <div className="mt-5">
               <label className="mb-2 block text-xs font-semibold text-foreground">
                 Observação
@@ -905,6 +1034,7 @@ function SelfVacationModal({
               </p>
             </div>
           </div>
+
           <div className="flex flex-col-reverse gap-2 border-t border-app-border p-5 sm:flex-row sm:justify-end sm:p-6">
             <button
               type="button"
@@ -927,14 +1057,19 @@ function SelfVacationModal({
     </div>
   );
 }
+
 function SelfDateField({
   label,
   value,
+  min,
+  max,
   onChange,
   disabled,
 }: {
   label: string;
   value: string;
+  min?: string;
+  max?: string;
   onChange: (value: string) => void;
   disabled: boolean;
 }) {
@@ -946,6 +1081,8 @@ function SelfDateField({
       <input
         type="date"
         value={value}
+        min={min}
+        max={max}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
         className="h-11 w-full rounded-xl border border-app-border bg-background px-3 text-xs text-foreground outline-none transition-colors focus:border-primary disabled:opacity-60"
@@ -961,9 +1098,11 @@ function todayISO(): string {
   const day = String(now.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
 function canStartVacation(vacation: Vacation): boolean {
   return vacation.status === "APROVADA" && todayISO() >= vacation.inicioGozo;
 }
+
 function canCompleteVacation(vacation: Vacation): boolean {
   return vacation.status === "EM_GOZO" && todayISO() >= vacation.fimGozo;
 }
@@ -996,9 +1135,10 @@ function VacationStatCard({
         transition-all
         duration-200
         sm:p-5
-        ${active
-          ? "border-primary"
-          : "border-app-border hover:-translate-y-0.5 hover:bg-surface-hover"
+        ${
+          active
+            ? "border-primary"
+            : "border-app-border hover:-translate-y-0.5 hover:bg-surface-hover"
         }
       `}
     >
@@ -1122,7 +1262,14 @@ function TableHeader({
   );
 }
 
-type VacationAction = "approve" | "reject" | "start" | "complete" | "cancel";
+type VacationAction =
+  | "approve"
+  | "reject"
+  | "revert"
+  | "start"
+  | "complete"
+  | "cancel";
+
 function VacationActions({
   vacation,
   open,
@@ -1142,11 +1289,14 @@ function VacationActions({
 }) {
   const hasActions =
     (vacation.status === "SOLICITADA" && canApprove) ||
-    (vacation.status === "APROVADA" && canManage) ||
+    (vacation.status === "REJEITADA" && canApprove) ||
+    (vacation.status === "APROVADA" && (canApprove || canManage)) ||
     (vacation.status === "EM_GOZO" && canManage);
+
   if (!hasActions) {
     return <span className="text-[10px] text-muted-light">—</span>;
   }
+
   return (
     <div className="relative inline-block text-left">
       <button
@@ -1173,6 +1323,7 @@ function VacationActions({
           <MoreHorizontal size={17} />
         )}
       </button>
+
       {open && !loading && (
         <div
           className="
@@ -1180,7 +1331,7 @@ function VacationActions({
             right-0
             top-9
             z-30
-            min-w-[165px]
+            min-w-[180px]
             overflow-hidden
             rounded-xl
             border
@@ -1206,58 +1357,71 @@ function VacationActions({
               />
             </>
           )}
-          {vacation.status === "APROVADA" && canManage && (
+
+          {vacation.status === "REJEITADA" && canApprove && (
+            <ActionButton
+              icon={<RotateCcw size={13} />}
+              label="Reverter para análise"
+              onClick={() => onAction("revert")}
+            />
+          )}
+
+          {vacation.status === "APROVADA" && (
             <>
-              <ActionButton
-                icon={<Play size={13} />}
-                label={
-                  canStartVacation(vacation)
-                    ? "Iniciar férias"
-                    : `Inicia em ${formatDate(vacation.inicioGozo)}`
-                }
-                disabled={!canStartVacation(vacation)}
-                title={
-                  canStartVacation(vacation)
-                    ? "Iniciar férias"
-                    : `As férias só podem ser iniciadas a partir de ${formatDate(
-                      vacation.inicioGozo,
-                    )}.`
-                }
-                onClick={() => onAction("start")}
-              />
-              <ActionButton
-                icon={<X size={14} />}
-                label="Cancelar"
-                danger
-                onClick={() => onAction("cancel")}
-              />
+              {canManage && (
+                <ActionButton
+                  icon={<Play size={13} />}
+                  label={
+                    canStartVacation(vacation)
+                      ? "Iniciar férias"
+                      : `Inicia em ${formatDate(vacation.inicioGozo)}`
+                  }
+                  disabled={!canStartVacation(vacation)}
+                  title={
+                    canStartVacation(vacation)
+                      ? "Iniciar férias"
+                      : `As férias só podem ser iniciadas a partir de ${formatDate(
+                          vacation.inicioGozo,
+                        )}.`
+                  }
+                  onClick={() => onAction("start")}
+                />
+              )}
+              {canApprove && (
+                <ActionButton
+                  icon={<RotateCcw size={13} />}
+                  label="Reverter para análise"
+                  onClick={() => onAction("revert")}
+                />
+              )}
+              {canManage && (
+                <ActionButton
+                  icon={<X size={14} />}
+                  label="Cancelar"
+                  danger
+                  onClick={() => onAction("cancel")}
+                />
+              )}
             </>
           )}
+
           {vacation.status === "EM_GOZO" && canManage && (
             <ActionButton
-              icon={
-                <CircleCheck size={14} />
-              }
+              icon={<CircleCheck size={14} />}
               label={
                 canCompleteVacation(vacation)
                   ? "Concluir férias"
-                  : `Termina em ${formatDate(
-                    vacation.fimGozo,
-                  )}`
+                  : `Termina em ${formatDate(vacation.fimGozo)}`
               }
-              disabled={
-                !canCompleteVacation(vacation)
-              }
+              disabled={!canCompleteVacation(vacation)}
               title={
                 canCompleteVacation(vacation)
                   ? "Concluir férias"
                   : `As férias só podem ser concluídas a partir de ${formatDate(
-                    vacation.fimGozo,
-                  )}.`
+                      vacation.fimGozo,
+                    )}.`
               }
-              onClick={() =>
-                onAction("complete")
-              }
+              onClick={() => onAction("complete")}
             />
           )}
         </div>
@@ -1300,9 +1464,10 @@ function ActionButton({
         transition-colors
         disabled:cursor-not-allowed
         disabled:opacity-40
-        ${danger
-          ? "text-danger hover:bg-surface-hover disabled:hover:bg-transparent"
-          : "text-foreground hover:bg-surface-hover disabled:hover:bg-transparent"
+        ${
+          danger
+            ? "text-danger hover:bg-surface-hover disabled:hover:bg-transparent"
+            : "text-foreground hover:bg-surface-hover disabled:hover:bg-transparent"
         }
       `}
     >
@@ -1332,6 +1497,7 @@ function MobileActions({
       </div>
     );
   }
+
   if (vacation.status === "SOLICITADA" && canApprove) {
     return (
       <div className="grid grid-cols-2 gap-2">
@@ -1352,94 +1518,79 @@ function MobileActions({
       </div>
     );
   }
-  if (
-    vacation.status ===
-    "APROVADA" &&
-    canManage
-  ) {
-    const canStart =
-      canStartVacation(vacation);
+
+  if (vacation.status === "REJEITADA" && canApprove) {
+    return (
+      <button
+        type="button"
+        onClick={() => onAction("revert")}
+        className="w-full rounded-xl border border-app-border py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface-hover"
+      >
+        Reverter para análise
+      </button>
+    );
+  }
+
+  if (vacation.status === "APROVADA" && (canApprove || canManage)) {
+    const canStart = canStartVacation(vacation);
     return (
       <div>
-        {!canStart && (
+        {!canStart && canManage && (
           <div className="mb-3 flex items-center gap-2 rounded-xl bg-icon-surface px-3 py-2.5">
-            <Clock3
-              size={14}
-              className="shrink-0 text-primary"
-            />
+            <Clock3 size={14} className="shrink-0 text-primary" />
             <p className="text-[10px] text-muted">
               Início disponível em{" "}
               <span className="font-semibold text-foreground">
-                {formatDate(
-                  vacation.inicioGozo,
-                )}
+                {formatDate(vacation.inicioGozo)}
               </span>
             </p>
           </div>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              onAction("cancel")
-            }
-            className="
-            rounded-xl
-            border border-app-border
-            py-2.5
-            text-xs font-semibold
-            text-danger
-            transition-colors
-            hover:bg-surface-hover
-          "
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            disabled={!canStart}
-            onClick={() =>
-              onAction("start")
-            }
-            className="
-            rounded-xl
-            bg-primary
-            py-2.5
-            text-xs font-semibold
-            text-white
-            transition-opacity
-            hover:opacity-90
-            disabled:cursor-not-allowed
-            disabled:opacity-40
-          "
-          >
-            Iniciar férias
-          </button>
+          {canApprove && (
+            <button
+              type="button"
+              onClick={() => onAction("revert")}
+              className="rounded-xl border border-app-border py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-surface-hover"
+            >
+              Reverter
+            </button>
+          )}
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => onAction("cancel")}
+              className="rounded-xl border border-app-border py-2.5 text-xs font-semibold text-danger transition-colors hover:bg-surface-hover"
+            >
+              Cancelar
+            </button>
+          )}
+          {canManage && (
+            <button
+              type="button"
+              disabled={!canStart}
+              onClick={() => onAction("start")}
+              className="col-span-2 rounded-xl bg-primary py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Iniciar férias
+            </button>
+          )}
         </div>
       </div>
     );
   }
-  if (
-    vacation.status ===
-    "EM_GOZO" &&
-    canManage
-  ) {
-    const canComplete =
-      canCompleteVacation(vacation);
+
+  if (vacation.status === "EM_GOZO" && canManage) {
+    const canComplete = canCompleteVacation(vacation);
     return (
       <div>
         {!canComplete && (
           <div className="mb-3 flex items-center gap-2 rounded-xl bg-icon-surface px-3 py-2.5">
-            <Clock3
-              size={14}
-              className="shrink-0 text-primary"
-            />
+            <Clock3 size={14} className="shrink-0 text-primary" />
             <p className="text-[10px] text-muted">
               Conclusão disponível em{" "}
               <span className="font-semibold text-foreground">
-                {formatDate(
-                  vacation.fimGozo,
-                )}
+                {formatDate(vacation.fimGozo)}
               </span>
             </p>
           </div>
@@ -1447,37 +1598,20 @@ function MobileActions({
         <button
           type="button"
           disabled={!canComplete}
-          onClick={() =>
-            onAction("complete")
-          }
-          className="
-          w-full
-          rounded-xl
-          bg-primary
-          py-2.5
-          text-xs font-semibold
-          text-white
-          transition-opacity
-          hover:opacity-90
-          disabled:cursor-not-allowed
-          disabled:opacity-40
-        "
+          onClick={() => onAction("complete")}
+          className="w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {canComplete
             ? "Concluir férias"
-            : `Término em ${formatDate(
-              vacation.fimGozo,
-            )}`}
+            : `Término em ${formatDate(vacation.fimGozo)}`}
         </button>
       </div>
     );
   }
+
   return (
     <p className="text-center text-[10px] text-muted-light">
       Nenhuma ação disponível
     </p>
   );
 }
-
-
-

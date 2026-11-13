@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronDown,
   X,
+  FileText,
 } from "lucide-react";
 
 
@@ -88,6 +89,16 @@ const menuItems: MenuItem[] = [
       "FERIAS_GERENCIAR",
     ],
   },
+  {
+  label: "Documentos",
+  icon: FileText,
+  path: "/documentos",
+  permissions: [
+    "DOCUMENTOS_VISUALIZAR",
+    "DOCUMENTOS_SOLICITAR",
+    "DOCUMENTOS_GERENCIAR",
+  ],
+},
 ];
 
 const adminItems: MenuItem[] = [

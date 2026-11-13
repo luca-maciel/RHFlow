@@ -2,23 +2,23 @@ package rhflow.backend.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import rhflow.backend.dto.FeriasRequest;
 import rhflow.backend.dto.FeriasResponse;
+import rhflow.backend.dto.MinhasFeriasRequest;
+import rhflow.backend.dto.PeriodoAquisitivoResponse;
 import rhflow.backend.entity.postgresql.Ferias;
 import rhflow.backend.entity.postgresql.Funcionario;
+import rhflow.backend.entity.postgresql.Usuario;
 import rhflow.backend.enums.StatusFerias;
 import rhflow.backend.enums.StatusFuncionario;
 import rhflow.backend.exception.BusinessException;
 import rhflow.backend.exception.ResourceNotFoundException;
 import rhflow.backend.repository.postgresql.FeriasRepository;
 import rhflow.backend.repository.postgresql.FuncionarioRepository;
-
-import rhflow.backend.dto.MinhasFeriasRequest;
-import rhflow.backend.entity.postgresql.Usuario;
 import rhflow.backend.repository.postgresql.UsuarioRepository;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -27,335 +27,479 @@ import java.util.UUID;
 @Transactional
 public class FeriasService {
 
-        private final FeriasRepository feriasRepository;
-        private final FuncionarioRepository funcionarioRepository;
-        private final UsuarioRepository usuarioRepository;
+    private static final int DIAS_MAXIMOS_POR_PERIODO = 30;
+    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final List<StatusFerias> STATUS_QUE_CONSOMEM_SALDO = List.of(
+            StatusFerias.SOLICITADA,
+            StatusFerias.APROVADA,
+            StatusFerias.EM_GOZO,
+            StatusFerias.CONCLUIDA
+    );
 
-        public FeriasService(
-                        FeriasRepository feriasRepository,
-                        FuncionarioRepository funcionarioRepository,
-                        UsuarioRepository usuarioRepository) {
-                this.feriasRepository = feriasRepository;
-                this.funcionarioRepository = funcionarioRepository;
-                this.usuarioRepository = usuarioRepository;
+    private final FeriasRepository feriasRepository;
+    private final FuncionarioRepository funcionarioRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    public FeriasService(
+            FeriasRepository feriasRepository,
+            FuncionarioRepository funcionarioRepository,
+            UsuarioRepository usuarioRepository) {
+        this.feriasRepository = feriasRepository;
+        this.funcionarioRepository = funcionarioRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
+
+    public FeriasResponse solicitar(FeriasRequest request) {
+        Funcionario funcionario = funcionarioRepository
+                .findById(request.getFuncionarioId())
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+
+        return criarSolicitacao(
+                funcionario,
+                request.getInicioPeriodoAquisitivo(),
+                request.getFimPeriodoAquisitivo(),
+                request.getInicioGozo(),
+                request.getFimGozo(),
+                request.getObservacao());
+    }
+
+    public FeriasResponse solicitarMinhasFerias(UUID usuarioId, MinhasFeriasRequest request) {
+        Funcionario funcionario = buscarFuncionarioDoUsuario(usuarioId);
+
+        return criarSolicitacao(
+                funcionario,
+                request.getInicioPeriodoAquisitivo(),
+                request.getFimPeriodoAquisitivo(),
+                request.getInicioGozo(),
+                request.getFimGozo(),
+                request.getObservacao());
+    }
+
+    private FeriasResponse criarSolicitacao(
+            Funcionario funcionario,
+            LocalDate inicioPeriodoInformado,
+            LocalDate fimPeriodoInformado,
+            LocalDate inicioGozo,
+            LocalDate fimGozo,
+            String observacao) {
+
+        if (!funcionario.isAtivo()) {
+            throw new BusinessException("Não é possível solicitar férias para funcionário inativo.");
         }
 
-        public FeriasResponse solicitar(
-                        FeriasRequest request) {
-                Funcionario funcionario = funcionarioRepository
-                                .findById(
-                                                request.getFuncionarioId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Funcionário não encontrado."));
-
-                return criarSolicitacao(
-                                funcionario,
-                                request.getInicioPeriodoAquisitivo(),
-                                request.getFimPeriodoAquisitivo(),
-                                request.getInicioGozo(),
-                                request.getFimGozo(),
-                                request.getObservacao());
+        if (funcionario.getStatus() == StatusFuncionario.DESLIGADO) {
+            throw new BusinessException("Não é possível solicitar férias para funcionário desligado.");
         }
 
-        private FeriasResponse criarSolicitacao(
-                        Funcionario funcionario,
-                        LocalDate inicioPeriodoAquisitivo,
-                        LocalDate fimPeriodoAquisitivo,
-                        LocalDate inicioGozo,
-                        LocalDate fimGozo,
-                        String observacao) {
-                if (!funcionario.isAtivo()) {
-                        throw new BusinessException(
-                                        "Não é possível solicitar férias para funcionário inativo.");
-                }
-
-                if (funcionario.getStatus() == StatusFuncionario.DESLIGADO) {
-                        throw new BusinessException(
-                                        "Não é possível solicitar férias para funcionário desligado.");
-                }
-
-                if (fimPeriodoAquisitivo.isBefore(
-                                inicioPeriodoAquisitivo)) {
-                        throw new BusinessException(
-                                        "O fim do período aquisitivo não pode ser anterior ao início.");
-                }
-
-                if (fimGozo.isBefore(inicioGozo)) {
-                        throw new BusinessException(
-                                        "O fim das férias não pode ser anterior ao início.");
-                }
-
-                long quantidadeDias = ChronoUnit.DAYS.between(
-                                inicioGozo,
-                                fimGozo) + 1;
-
-                if (quantidadeDias > 30) {
-                        throw new BusinessException(
-                                        "O período de férias não pode ultrapassar 30 dias.");
-                }
-
-                if (quantidadeDias < 1) {
-                        throw new BusinessException(
-                                        "O período de férias deve possuir pelo menos 1 dia.");
-                }
-
-                boolean existeSobreposicao = feriasRepository.existsPeriodoSobreposto(
-                                funcionario.getId(),
-                                inicioGozo,
-                                fimGozo,
-                                List.of(
-                                                StatusFerias.SOLICITADA,
-                                                StatusFerias.APROVADA,
-                                                StatusFerias.EM_GOZO));
-
-                if (existeSobreposicao) {
-                        throw new BusinessException(
-                                        "Já existe uma solicitação de férias para este funcionário nesse período.");
-                }
-
-                Ferias ferias = new Ferias();
-
-                ferias.setFuncionario(funcionario);
-                ferias.setInicioPeriodoAquisitivo(
-                                inicioPeriodoAquisitivo);
-                ferias.setFimPeriodoAquisitivo(
-                                fimPeriodoAquisitivo);
-                ferias.setInicioGozo(inicioGozo);
-                ferias.setFimGozo(fimGozo);
-
-                ferias.setQuantidadeDias(
-                                Math.toIntExact(quantidadeDias));
-
-                ferias.setStatus(
-                                StatusFerias.SOLICITADA);
-
-                ferias.setObservacao(observacao);
-
-                return toResponse(
-                                feriasRepository.save(ferias));
+        if (fimGozo.isBefore(inicioGozo)) {
+            throw new BusinessException("O fim das férias não pode ser anterior ao início.");
         }
 
-        @Transactional(readOnly = true)
-        public List<FeriasResponse> listarTodos() {
+        long quantidadeDias = ChronoUnit.DAYS.between(inicioGozo, fimGozo) + 1;
 
-                return feriasRepository.findAll()
-                                .stream()
-                                .map(this::toResponse)
-                                .toList();
+        if (quantidadeDias < 1 || quantidadeDias > DIAS_MAXIMOS_POR_PERIODO) {
+            throw new BusinessException("O período de férias deve possuir entre 1 e 30 dias.");
         }
 
-        @Transactional(readOnly = true)
-        public FeriasResponse buscarPorId(UUID id) {
-                return toResponse(buscarFerias(id));
+        LocalDate[] periodoAquisitivo = resolverPeriodoAquisitivo(
+                funcionario,
+                inicioPeriodoInformado,
+                fimPeriodoInformado);
+
+        LocalDate inicioAquisitivo = periodoAquisitivo[0];
+        LocalDate fimAquisitivo = periodoAquisitivo[1];
+
+        LocalDate inicioConcessivo = fimAquisitivo.plusDays(1);
+        LocalDate fimConcessivo = inicioConcessivo.plusYears(1).minusDays(1);
+
+        if (inicioGozo.isBefore(inicioConcessivo)) {
+            throw new BusinessException(
+                    "Direito adquirido incompleto. O período aquisitivo encerra em "
+                            + fimAquisitivo.format(DATA_BR) + ", liberando o gozo a partir de "
+                            + inicioConcessivo.format(DATA_BR) + ".");
         }
 
-        @Transactional(readOnly = true)
-        public List<FeriasResponse> listarPorFuncionario(
-                        UUID funcionarioId) {
-
-                if (!funcionarioRepository.existsById(funcionarioId)) {
-                        throw new ResourceNotFoundException(
-                                        "Funcionário não encontrado.");
-                }
-
-                return feriasRepository
-                                .findByFuncionarioIdOrderByInicioGozoDesc(
-                                                funcionarioId)
-                                .stream()
-                                .map(this::toResponse)
-                                .toList();
+        if (inicioGozo.isAfter(fimConcessivo) || fimGozo.isAfter(fimConcessivo)) {
+            throw new BusinessException(
+                    "As férias devem ser gozadas dentro do período concessivo ("
+                            + inicioConcessivo.format(DATA_BR) + " até " + fimConcessivo.format(DATA_BR) + ").");
         }
 
-        @Transactional
-        public FeriasResponse aprovar(UUID id) {
-                Ferias ferias = buscarFerias(id);
+        int diasJaUtilizados = feriasRepository.sumDiasUtilizadosNoPeriodo(
+                funcionario.getId(),
+                inicioAquisitivo,
+                fimAquisitivo,
+                STATUS_QUE_CONSOMEM_SALDO);
 
-                if (ferias.getStatus() != StatusFerias.SOLICITADA) {
-                        throw new BusinessException(
-                                        "Somente solicitações pendentes podem ser aprovadas.");
-                }
+        int saldoDisponivel = DIAS_MAXIMOS_POR_PERIODO - diasJaUtilizados;
 
-                ferias.setStatus(
-                                StatusFerias.APROVADA);
-
-                return toResponse(
-                                feriasRepository.save(ferias));
+        if (quantidadeDias > saldoDisponivel) {
+            throw new BusinessException(
+                    "Saldo insuficiente neste período aquisitivo. Disponível: "
+                            + saldoDisponivel + " dia(s).");
         }
 
-        @Transactional
-        public FeriasResponse rejeitar(UUID id) {
-                Ferias ferias = buscarFerias(id);
+        boolean existeSobreposicao = feriasRepository.existsPeriodoSobreposto(
+                funcionario.getId(),
+                inicioGozo,
+                fimGozo,
+                List.of(StatusFerias.SOLICITADA, StatusFerias.APROVADA, StatusFerias.EM_GOZO));
 
-                if (ferias.getStatus() != StatusFerias.SOLICITADA) {
-                        throw new BusinessException(
-                                        "Somente solicitações pendentes podem ser rejeitadas.");
-                }
-
-                ferias.setStatus(
-                                StatusFerias.REJEITADA);
-
-                return toResponse(
-                                feriasRepository.save(ferias));
+        if (existeSobreposicao) {
+            throw new BusinessException("Já existe uma solicitação de férias para este funcionário nesse período.");
         }
 
-        @Transactional
-        public FeriasResponse iniciar(UUID id) {
-                Ferias ferias = buscarFerias(id);
+        Ferias ferias = new Ferias();
+        ferias.setFuncionario(funcionario);
+        ferias.setInicioPeriodoAquisitivo(inicioAquisitivo);
+        ferias.setFimPeriodoAquisitivo(fimAquisitivo);
+        ferias.setInicioGozo(inicioGozo);
+        ferias.setFimGozo(fimGozo);
+        ferias.setQuantidadeDias(Math.toIntExact(quantidadeDias));
+        ferias.setStatus(StatusFerias.SOLICITADA);
+        ferias.setObservacao(observacao);
 
-                validarStatus(
-                                ferias,
-                                StatusFerias.APROVADA,
-                                "Somente férias aprovadas podem ser iniciadas.");
+        return toResponse(feriasRepository.save(ferias));
+    }
 
-                LocalDate hoje = LocalDate.now();
+    private LocalDate[] resolverPeriodoAquisitivo(
+            Funcionario funcionario,
+            LocalDate inicioInformado,
+            LocalDate fimInformado) {
 
-                if (hoje.isBefore(ferias.getInicioGozo())) {
-                        throw new BusinessException(
-                                        "As férias só podem ser iniciadas a partir de "
-                                                        + ferias.getInicioGozo() + ".");
-                }
-
-                Funcionario funcionario = ferias.getFuncionario();
-
-                if (!funcionario.isAtivo()) {
-                        throw new BusinessException(
-                                        "Não é possível iniciar férias de um funcionário inativo.");
-                }
-
-                if (funcionario.getStatus() == StatusFuncionario.DESLIGADO) {
-                        throw new BusinessException(
-                                        "Não é possível iniciar férias de um funcionário desligado.");
-                }
-
-                ferias.setStatus(StatusFerias.EM_GOZO);
-                funcionario.setStatus(StatusFuncionario.FERIAS);
-
-                funcionarioRepository.save(funcionario);
-
-                return toResponse(
-                                feriasRepository.save(ferias));
+        LocalDate dataAdmissao = funcionario.getDataAdmissao();
+        if (dataAdmissao == null) {
+            throw new BusinessException("O funcionário não possui data de admissão cadastrada.");
         }
 
-        @Transactional
-        public FeriasResponse concluir(UUID id) {
-                Ferias ferias = buscarFerias(id);
+        if (inicioInformado != null && fimInformado != null) {
+            if (fimInformado.isBefore(inicioInformado)) {
+                throw new BusinessException("O fim do período aquisitivo não pode ser anterior ao início.");
+            }
+            if (inicioInformado.isBefore(dataAdmissao)) {
+                throw new BusinessException("O período aquisitivo não pode iniciar antes da data de admissão.");
+            }
+            return new LocalDate[]{inicioInformado, fimInformado};
+        }
 
-                validarStatus(
-                                ferias,
-                                StatusFerias.EM_GOZO,
-                                "Somente férias em gozo podem ser concluídas.");
+        LocalDate inicioCiclo = dataAdmissao;
 
-                LocalDate hoje = LocalDate.now();
+        while (true) {
+            LocalDate fimCiclo = inicioCiclo.plusYears(1).minusDays(1);
 
-                if (hoje.isBefore(ferias.getFimGozo())) {
-                        throw new BusinessException(
-                                        "As férias só podem ser concluídas a partir de "
-                                                        + ferias.getFimGozo() + ".");
+            int diasUtilizados = feriasRepository.sumDiasUtilizadosNoPeriodo(
+                    funcionario.getId(),
+                    inicioCiclo,
+                    fimCiclo,
+                    STATUS_QUE_CONSOMEM_SALDO);
+
+            if (diasUtilizados < DIAS_MAXIMOS_POR_PERIODO) {
+                return new LocalDate[]{inicioCiclo, fimCiclo};
+            }
+
+            inicioCiclo = fimCiclo.plusDays(1);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public PeriodoAquisitivoResponse consultarMeuPeriodoAquisitivo(UUID usuarioId) {
+        Funcionario funcionario = buscarFuncionarioDoUsuario(usuarioId);
+        return montarResumoPeriodoAquisitivo(funcionario);
+    }
+
+    @Transactional(readOnly = true)
+    public PeriodoAquisitivoResponse consultarPeriodoAquisitivoPorFuncionario(UUID funcionarioId) {
+        Funcionario funcionario = funcionarioRepository
+                .findById(funcionarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Funcionário não encontrado."));
+        return montarResumoPeriodoAquisitivo(funcionario);
+    }
+
+    private PeriodoAquisitivoResponse montarResumoPeriodoAquisitivo(Funcionario funcionario) {
+        LocalDate[] periodo = resolverPeriodoAquisitivo(funcionario, null, null);
+        LocalDate inicioAquisitivo = periodo[0];
+        LocalDate fimAquisitivo = periodo[1];
+
+        LocalDate inicioConcessivo = fimAquisitivo.plusDays(1);
+        LocalDate fimConcessivo = inicioConcessivo.plusYears(1).minusDays(1);
+
+        int diasUtilizados = feriasRepository.sumDiasUtilizadosNoPeriodo(
+                funcionario.getId(),
+                inicioAquisitivo,
+                fimAquisitivo,
+                STATUS_QUE_CONSOMEM_SALDO);
+
+        int saldoDisponivel = Math.max(0, DIAS_MAXIMOS_POR_PERIODO - diasUtilizados);
+        boolean direitoAdquirido = !LocalDate.now().isBefore(inicioConcessivo);
+
+        return new PeriodoAquisitivoResponse(
+                funcionario.getId(),
+                funcionario.getNome(),
+                funcionario.getDataAdmissao(),
+                inicioAquisitivo,
+                fimAquisitivo,
+                inicioConcessivo,
+                fimConcessivo,
+                diasUtilizados,
+                saldoDisponivel,
+                direitoAdquirido
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<FeriasResponse> listarTodos() {
+        return feriasRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public FeriasResponse buscarPorId(UUID id) {
+        return toResponse(buscarFerias(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<FeriasResponse> listarPorFuncionario(UUID funcionarioId) {
+        if (!funcionarioRepository.existsById(funcionarioId)) {
+            throw new ResourceNotFoundException("Funcionário não encontrado.");
+        }
+
+        return feriasRepository
+                .findByFuncionarioIdOrderByInicioGozoDesc(funcionarioId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<FeriasResponse> listarMinhasFerias(UUID usuarioId) {
+        Funcionario funcionario = buscarFuncionarioDoUsuario(usuarioId);
+
+        return feriasRepository
+                .findByFuncionarioIdOrderByInicioGozoDesc(funcionario.getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void processarTransicoesAutomaticas() {
+        LocalDate hoje = LocalDate.now();
+
+        List<Ferias> feriasAtivas = feriasRepository.findByStatusInWithFuncionario(
+                List.of(StatusFerias.APROVADA, StatusFerias.EM_GOZO));
+
+        for (Ferias ferias : feriasAtivas) {
+            Funcionario funcionario = ferias.getFuncionario();
+
+            if (ferias.getStatus() == StatusFerias.APROVADA) {
+                if (hoje.isAfter(ferias.getFimGozo())) {
+                    // Período aprovado já passou integralmente enquanto o sistema estava offline
+                    ferias.setStatus(StatusFerias.CONCLUIDA);
+                    feriasRepository.save(ferias);
+                } else if (!hoje.isBefore(ferias.getInicioGozo())
+                        && funcionario.isAtivo()
+                        && funcionario.getStatus() != StatusFuncionario.DESLIGADO) {
+                    // Chegou a data de início: entra automaticamente em gozo
+                    ferias.setStatus(StatusFerias.EM_GOZO);
+                    funcionario.setStatus(StatusFuncionario.FERIAS);
+                    feriasRepository.save(ferias);
+                    funcionarioRepository.save(funcionario);
                 }
-
-                Funcionario funcionario = ferias.getFuncionario();
-
-                ferias.setStatus(StatusFerias.CONCLUIDA);
-
-                if (funcionario.isAtivo()
-                                && funcionario.getStatus() == StatusFuncionario.FERIAS) {
+            } else if (ferias.getStatus() == StatusFerias.EM_GOZO) {
+                if (hoje.isAfter(ferias.getFimGozo())) {
+                    // O último dia de descanso já passou: conclui automaticamente
+                    ferias.setStatus(StatusFerias.CONCLUIDA);
+                    if (funcionario.isAtivo()
+                            && funcionario.getStatus() == StatusFuncionario.FERIAS) {
                         funcionario.setStatus(StatusFuncionario.ATIVO);
                         funcionarioRepository.save(funcionario);
+                    }
+                    feriasRepository.save(ferias);
                 }
+            }
+        }
+    }
 
-                return toResponse(
-                                feriasRepository.save(ferias));
+    public FeriasResponse aprovar(UUID id) {
+        Ferias ferias = buscarFerias(id);
+
+        if (ferias.getStatus() != StatusFerias.SOLICITADA) {
+            throw new BusinessException("Somente solicitações pendentes podem ser aprovadas.");
         }
 
-        @Transactional
-        public FeriasResponse cancelar(UUID id) {
-                Ferias ferias = buscarFerias(id);
+        ferias.setStatus(StatusFerias.APROVADA);
+        return toResponse(feriasRepository.save(ferias));
+    }
 
-                if (ferias.getStatus() != StatusFerias.APROVADA) {
-                        throw new BusinessException(
-                                        "Somente férias aprovadas podem ser canceladas.");
-                }
+    public FeriasResponse rejeitar(UUID id) {
+        Ferias ferias = buscarFerias(id);
 
-                ferias.setStatus(
-                                StatusFerias.CANCELADA);
-
-                return toResponse(
-                                feriasRepository.save(ferias));
+        if (ferias.getStatus() != StatusFerias.SOLICITADA) {
+            throw new BusinessException("Somente solicitações pendentes podem ser rejeitadas.");
         }
 
-        private Ferias buscarFerias(UUID id) {
+        ferias.setStatus(StatusFerias.REJEITADA);
+        return toResponse(feriasRepository.save(ferias));
+    }
 
-                return feriasRepository.findById(id)
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Registro de férias não encontrado."));
+    public FeriasResponse reverter(UUID id) {
+        Ferias ferias = buscarFerias(id);
+
+        if (ferias.getStatus() != StatusFerias.APROVADA
+                && ferias.getStatus() != StatusFerias.REJEITADA) {
+            throw new BusinessException(
+                    "Somente solicitações aprovadas ou rejeitadas podem voltar para análise.");
         }
 
-        private void validarStatus(
-                        Ferias ferias,
-                        StatusFerias statusEsperado,
-                        String mensagem) {
+        // Se estava rejeitada, valida novamente saldo e sobreposição antes de reabrir
+        if (ferias.getStatus() == StatusFerias.REJEITADA) {
+            Funcionario funcionario = ferias.getFuncionario();
 
-                if (ferias.getStatus() != statusEsperado) {
-                        throw new BusinessException(mensagem);
-                }
+            if (!funcionario.isAtivo() || funcionario.getStatus() == StatusFuncionario.DESLIGADO) {
+                throw new BusinessException("Não é possível reabrir férias de um funcionário inativo ou desligado.");
+            }
+
+            int diasJaUtilizados = feriasRepository.sumDiasUtilizadosNoPeriodo(
+                    funcionario.getId(),
+                    ferias.getInicioPeriodoAquisitivo(),
+                    ferias.getFimPeriodoAquisitivo(),
+                    STATUS_QUE_CONSOMEM_SALDO);
+
+            int saldoDisponivel = DIAS_MAXIMOS_POR_PERIODO - diasJaUtilizados;
+
+            if (ferias.getQuantidadeDias() > saldoDisponivel) {
+                throw new BusinessException(
+                        "Saldo insuficiente para reabrir esta solicitação. Disponível: "
+                                + saldoDisponivel + " dia(s).");
+            }
+
+            boolean existeSobreposicao = feriasRepository.existsPeriodoSobreposto(
+                    funcionario.getId(),
+                    ferias.getInicioGozo(),
+                    ferias.getFimGozo(),
+                    List.of(StatusFerias.SOLICITADA, StatusFerias.APROVADA, StatusFerias.EM_GOZO));
+
+            if (existeSobreposicao) {
+                throw new BusinessException(
+                        "Não é possível reabrir pois já existe outra solicitação ativa neste mesmo período.");
+            }
         }
 
-        private FeriasResponse toResponse(Ferias ferias) {
+        ferias.setStatus(StatusFerias.SOLICITADA);
+        return toResponse(feriasRepository.save(ferias));
+    }
 
-                return new FeriasResponse(
-                                ferias.getId(),
-                                ferias.getFuncionario().getId(),
-                                ferias.getFuncionario().getNome(),
-                                ferias.getInicioPeriodoAquisitivo(),
-                                ferias.getFimPeriodoAquisitivo(),
-                                ferias.getInicioGozo(),
-                                ferias.getFimGozo(),
-                                ferias.getQuantidadeDias(),
-                                ferias.getStatus(),
-                                ferias.getObservacao(),
-                                ferias.getCreatedAt(),
-                                ferias.getUpdatedAt());
+    public FeriasResponse iniciar(UUID id) {
+        Ferias ferias = buscarFerias(id);
+
+        validarStatus(
+                ferias,
+                StatusFerias.APROVADA,
+                "Somente férias aprovadas podem ser iniciadas.");
+
+        LocalDate hoje = LocalDate.now();
+
+        if (hoje.isBefore(ferias.getInicioGozo())) {
+            throw new BusinessException(
+                    "As férias só podem ser iniciadas a partir de "
+                            + ferias.getInicioGozo().format(DATA_BR) + ".");
         }
 
-        private Funcionario buscarFuncionarioDoUsuario(
-                        UUID usuarioId) {
-                Usuario usuario = usuarioRepository
-                                .findById(usuarioId)
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Usuário não encontrado."));
+        Funcionario funcionario = ferias.getFuncionario();
 
-                if (usuario.getFuncionario() == null) {
-                        throw new BusinessException(
-                                        "O usuário autenticado não está vinculado a um funcionário.");
-                }
-
-                return usuario.getFuncionario();
+        if (!funcionario.isAtivo()) {
+            throw new BusinessException("Não é possível iniciar férias de um funcionário inativo.");
         }
 
-        public FeriasResponse solicitarMinhasFerias(
-                        UUID usuarioId,
-                        MinhasFeriasRequest request) {
-                Funcionario funcionario = buscarFuncionarioDoUsuario(usuarioId);
-
-                return criarSolicitacao(
-                                funcionario,
-                                request.getInicioPeriodoAquisitivo(),
-                                request.getFimPeriodoAquisitivo(),
-                                request.getInicioGozo(),
-                                request.getFimGozo(),
-                                request.getObservacao());
+        if (funcionario.getStatus() == StatusFuncionario.DESLIGADO) {
+            throw new BusinessException("Não é possível iniciar férias de um funcionário desligado.");
         }
 
-        @Transactional(readOnly = true)
-        public List<FeriasResponse> listarMinhasFerias(
-                        UUID usuarioId) {
-                Funcionario funcionario = buscarFuncionarioDoUsuario(usuarioId);
+        ferias.setStatus(StatusFerias.EM_GOZO);
+        funcionario.setStatus(StatusFuncionario.FERIAS);
 
-                return feriasRepository
-                                .findByFuncionarioIdOrderByInicioGozoDesc(
-                                                funcionario.getId())
-                                .stream()
-                                .map(this::toResponse)
-                                .toList();
+        funcionarioRepository.save(funcionario);
+        return toResponse(feriasRepository.save(ferias));
+    }
+
+    public FeriasResponse concluir(UUID id) {
+        Ferias ferias = buscarFerias(id);
+
+        validarStatus(
+                ferias,
+                StatusFerias.EM_GOZO,
+                "Somente férias em gozo podem ser concluídas.");
+
+        LocalDate hoje = LocalDate.now();
+
+        if (hoje.isBefore(ferias.getFimGozo())) {
+            throw new BusinessException(
+                    "As férias só podem ser concluídas a partir de "
+                            + ferias.getFimGozo().format(DATA_BR) + ".");
         }
+
+        Funcionario funcionario = ferias.getFuncionario();
+        ferias.setStatus(StatusFerias.CONCLUIDA);
+
+        if (funcionario.isAtivo() && funcionario.getStatus() == StatusFuncionario.FERIAS) {
+            funcionario.setStatus(StatusFuncionario.ATIVO);
+            funcionarioRepository.save(funcionario);
+        }
+
+        return toResponse(feriasRepository.save(ferias));
+    }
+
+    public FeriasResponse cancelar(UUID id) {
+        Ferias ferias = buscarFerias(id);
+
+        if (ferias.getStatus() != StatusFerias.APROVADA) {
+            throw new BusinessException("Somente férias aprovadas podem ser canceladas.");
+        }
+
+        ferias.setStatus(StatusFerias.CANCELADA);
+        return toResponse(feriasRepository.save(ferias));
+    }
+
+    private Ferias buscarFerias(UUID id) {
+        return feriasRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Registro de férias não encontrado."));
+    }
+
+    private void validarStatus(Ferias ferias, StatusFerias statusEsperado, String mensagem) {
+        if (ferias.getStatus() != statusEsperado) {
+            throw new BusinessException(mensagem);
+        }
+    }
+
+    private Funcionario buscarFuncionarioDoUsuario(UUID usuarioId) {
+        Usuario usuario = usuarioRepository
+                .findById(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado."));
+
+        if (usuario.getFuncionario() == null) {
+            throw new BusinessException("O usuário autenticado não está vinculado a um funcionário.");
+        }
+
+        return usuario.getFuncionario();
+    }
+
+    private FeriasResponse toResponse(Ferias ferias) {
+        return new FeriasResponse(
+                ferias.getId(),
+                ferias.getFuncionario().getId(),
+                ferias.getFuncionario().getNome(),
+                ferias.getInicioPeriodoAquisitivo(),
+                ferias.getFimPeriodoAquisitivo(),
+                ferias.getInicioGozo(),
+                ferias.getFimGozo(),
+                ferias.getQuantidadeDias(),
+                ferias.getStatus(),
+                ferias.getObservacao(),
+                ferias.getCreatedAt(),
+                ferias.getUpdatedAt());
+    }
+
+    
 }

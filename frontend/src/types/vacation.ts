@@ -6,47 +6,57 @@ export type VacationStatus =
   | "CONCLUIDA"
   | "CANCELADA";
 
-export type VacationRequest = {
+export interface VacationRequest {
   funcionarioId: string;
-  inicioPeriodoAquisitivo: string;
-  fimPeriodoAquisitivo: string;
+  inicioPeriodoAquisitivo: string|any;
+  fimPeriodoAquisitivo: string|any;
   inicioGozo: string;
   fimGozo: string;
   observacao?: string;
-};
+}
 
-export type MyVacationRequest = {
-  inicioPeriodoAquisitivo: string;
-  fimPeriodoAquisitivo: string;
+export interface MyVacationRequest {
+  inicioPeriodoAquisitivo?: string;
+  fimPeriodoAquisitivo?: string;
   inicioGozo: string;
   fimGozo: string;
   observacao?: string;
-};
+}
 
-export type Vacation = {
+export interface VacationDecisionRequest {
+  motivo?: string;
+}
+
+export interface Vacation {
   id: string;
   funcionarioId: string;
   funcionarioNome: string;
-
   inicioPeriodoAquisitivo: string;
   fimPeriodoAquisitivo: string;
-
   inicioGozo: string;
   fimGozo: string;
-
   quantidadeDias: number;
   status: VacationStatus;
-
   observacao?: string | null;
-
+  motivoCancelamento?: string | null;
   createdAt: string;
   updatedAt: string;
-};
+}
 
-export const VACATION_STATUS_LABELS: Record<
-  VacationStatus,
-  string
-> = {
+export interface AcquisitivePeriodSummary {
+  funcionarioId: string;
+  funcionarioNome: string;
+  dataAdmissao: string;
+  inicioPeriodoAquisitivo: string;
+  fimPeriodoAquisitivo: string;
+  inicioPeriodoConcessivo: string;
+  fimPeriodoConcessivo: string;
+  diasUtilizados: number;
+  saldoDisponivel: number;
+  direitoAdquirido: boolean;
+}
+
+export const VACATION_STATUS_LABELS: Record<VacationStatus, string> = {
   SOLICITADA: "Solicitada",
   APROVADA: "Aprovada",
   REJEITADA: "Rejeitada",
@@ -55,18 +65,16 @@ export const VACATION_STATUS_LABELS: Record<
   CANCELADA: "Cancelada",
 };
 
-export function isVacationHistory(
-  status: VacationStatus,
-) {
+export const ACTIVE_VACATION_STATUS: VacationStatus[] = [
+  "SOLICITADA",
+  "APROVADA",
+  "EM_GOZO",
+];
+
+export function isVacationHistory(status: VacationStatus): boolean {
   return (
     status === "CONCLUIDA" ||
     status === "REJEITADA" ||
     status === "CANCELADA"
   );
 }
-
-export const ACTIVE_VACATION_STATUS: VacationStatus[] = [
-  "SOLICITADA",
-  "APROVADA",
-  "EM_GOZO",
-];

@@ -1,6 +1,6 @@
 import { api } from "./api";
-
 import type {
+  AcquisitivePeriodSummary,
   MyVacationRequest,
   Vacation,
   VacationRequest,
@@ -16,6 +16,22 @@ const vacationService = {
 
   async findMine(): Promise<Vacation[]> {
     const { data } = await api.get<Vacation[]>(`${BASE_URL}/minhas`);
+    return data;
+  },
+
+  async getMyAcquisitivePeriod(): Promise<AcquisitivePeriodSummary> {
+    const { data } = await api.get<AcquisitivePeriodSummary>(
+      `${BASE_URL}/minhas/periodo-aquisitivo`,
+    );
+    return data;
+  },
+
+  async getEmployeeAcquisitivePeriod(
+    employeeId: string,
+  ): Promise<AcquisitivePeriodSummary> {
+    const { data } = await api.get<AcquisitivePeriodSummary>(
+      `${BASE_URL}/funcionario/${employeeId}/periodo-aquisitivo`,
+    );
     return data;
   },
 
@@ -37,45 +53,37 @@ const vacationService = {
   },
 
   async requestMine(request: MyVacationRequest): Promise<Vacation> {
-    const { data } = await api.post<Vacation>(
-      `${BASE_URL}/minhas`,
-      request,
-    );
+    const { data } = await api.post<Vacation>(`${BASE_URL}/minhas`, request);
     return data;
   },
 
   async approve(id: string): Promise<Vacation> {
-    const { data } = await api.patch<Vacation>(
-      `${BASE_URL}/${id}/aprovar`,
-    );
+    const { data } = await api.patch<Vacation>(`${BASE_URL}/${id}/aprovar`);
     return data;
   },
 
   async reject(id: string): Promise<Vacation> {
-    const { data } = await api.patch<Vacation>(
-      `${BASE_URL}/${id}/rejeitar`,
-    );
+    const { data } = await api.patch<Vacation>(`${BASE_URL}/${id}/rejeitar`);
+    return data;
+  },
+
+  async revert(id: string): Promise<Vacation> {
+    const { data } = await api.patch<Vacation>(`${BASE_URL}/${id}/reverter`);
     return data;
   },
 
   async start(id: string): Promise<Vacation> {
-    const { data } = await api.patch<Vacation>(
-      `${BASE_URL}/${id}/iniciar`,
-    );
+    const { data } = await api.patch<Vacation>(`${BASE_URL}/${id}/iniciar`);
     return data;
   },
 
   async complete(id: string): Promise<Vacation> {
-    const { data } = await api.patch<Vacation>(
-      `${BASE_URL}/${id}/concluir`,
-    );
+    const { data } = await api.patch<Vacation>(`${BASE_URL}/${id}/concluir`);
     return data;
   },
 
   async cancel(id: string): Promise<Vacation> {
-    const { data } = await api.patch<Vacation>(
-      `${BASE_URL}/${id}/cancelar`,
-    );
+    const { data } = await api.patch<Vacation>(`${BASE_URL}/${id}/cancelar`);
     return data;
   },
 };
