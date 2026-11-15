@@ -9,26 +9,28 @@ import rhflow.backend.exception.ResourceNotFoundException;
 import rhflow.backend.repository.postgresql.EmpresaRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
+    private final AuditoriaService auditoriaService;
 
-    public EmpresaService(EmpresaRepository empresaRepository) {
+    public EmpresaService(
+            EmpresaRepository empresaRepository,
+            AuditoriaService auditoriaService) {
         this.empresaRepository = empresaRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     public EmpresaResponse criar(EmpresaRequest request) {
-
         if (empresaRepository.existsByCnpj(request.getCnpj())) {
-            throw new BusinessException(
-                    "Já existe uma empresa cadastrada com esse CNPJ.");
+            throw new BusinessException("Já existe uma empresa cadastrada com esse CNPJ.");
         }
 
         Empresa empresa = new Empresa();
-
         empresa.setRazaoSocial(request.getRazaoSocial());
         empresa.setNome(request.getNome());
         empresa.setCnpj(request.getCnpj());
@@ -37,38 +39,36 @@ public class EmpresaService {
 
         Empresa empresaSalva = empresaRepository.save(empresa);
 
+        auditoriaService.registrar(
+                "CADASTRAR_EMPRESA",
+                "EMPRESA",
+                empresaSalva.getId().toString(),
+                "Empresa '" + empresaSalva.getNome() + "' (CNPJ " + empresaSalva.getCnpj() + ") cadastrada",
+                Map.of("cnpj", empresaSalva.getCnpj())
+        );
+
         return toResponse(empresaSalva);
     }
 
     public List<EmpresaResponse> listarTodas() {
-        return empresaRepository
-                .findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return empresaRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     public EmpresaResponse buscarPorId(UUID id) {
-
-        Empresa empresa = empresaRepository
-                .findById(id)
+        Empresa empresa = empresaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada."));
-
         return toResponse(empresa);
     }
 
     public EmpresaResponse atualizar(UUID id, EmpresaRequest request) {
-
-        Empresa empresa = empresaRepository
-                .findById(id)
+        Empresa empresa = empresaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada."));
 
         boolean cnpjPertenceOutraEmpresa = !empresa.getCnpj().equals(request.getCnpj())
                 && empresaRepository.existsByCnpj(request.getCnpj());
 
         if (cnpjPertenceOutraEmpresa) {
-            throw new BusinessException(
-                    "Já existe uma empresa cadastrada com esse CNPJ.");
+            throw new BusinessException("Já existe uma empresa cadastrada com esse CNPJ.");
         }
 
         empresa.setRazaoSocial(request.getRazaoSocial());
@@ -77,24 +77,37 @@ public class EmpresaService {
         empresa.setEmail(request.getEmail());
         empresa.setTelefone(request.getTelefone());
 
-        return toResponse(empresaRepository.save(empresa));
+        Empresa salva = empresaRepository.save(empresa);
+
+        auditoriaService.registrar(
+                "ATUALIZAR_EMPRESA",
+                "EMPRESA",
+                salva.getId().toString(),
+                "Empresa '" + salva.getNome() + "' atualizada",
+                Map.of("cnpj", salva.getCnpj())
+        );
+
+        return toResponse(salva);
     }
 
     public void desativar(UUID id) {
-
-        Empresa empresa = empresaRepository
-                .findById(id)
+        Empresa empresa = empresaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada."));
 
         empresa.setAtivo(false);
-
         empresaRepository.save(empresa);
+
+        auditoriaService.registrar(
+                "DESATIVAR_EMPRESA",
+                "EMPRESA",
+                empresa.getId().toString(),
+                "Empresa '" + empresa.getNome() + "' desativada",
+                Map.of("cnpj", empresa.getCnpj())
+        );
     }
 
     private EmpresaResponse toResponse(Empresa empresa) {
-
         EmpresaResponse response = new EmpresaResponse();
-
         response.setId(empresa.getId());
         response.setRazaoSocial(empresa.getRazaoSocial());
         response.setNome(empresa.getNome());
@@ -104,7 +117,6 @@ public class EmpresaService {
         response.setAtivo(empresa.isAtivo());
         response.setCreatedAt(empresa.getCreatedAt());
         response.setUpdatedAt(empresa.getUpdatedAt());
-
         return response;
     }
 }

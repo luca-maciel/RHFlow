@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
-import { Pencil, UserRoundCheck, UserRoundX } from "lucide-react";
+import { KeyRound, Pencil, UserRoundCheck, UserRoundX } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -80,6 +80,13 @@ export default function Users() {
 
   const [loading, setLoading] = useState(true);
 
+  // Modal de alteração de senha
+  const [passwordTarget, setPasswordTarget] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordBusy, setPasswordBusy] = useState(false);
+
   async function load() {
     setLoadError("");
 
@@ -91,7 +98,6 @@ export default function Users() {
           accessService.getUsers(),
           accessService.getRoles(),
           accessService.getPermissions(),
-
           canViewEmployees ? accessService.getEmployees() : Promise.resolve([]),
         ]);
 
@@ -115,7 +121,6 @@ export default function Users() {
 
       if (employeesResult.status === "fulfilled") {
         employeeList = employeesResult.value;
-
         setEmployees(employeeList);
       } else {
         setEmployees([]);
@@ -127,7 +132,6 @@ export default function Users() {
 
       const userList = usersResult.value.map((user) => ({
         ...user,
-
         employeeName: user.employeeId
           ? (employeeMap.get(user.employeeId) ?? null)
           : null,
@@ -162,20 +166,11 @@ export default function Users() {
       setForm({
         name: user.name,
         email: user.email,
-
-        /*
-         * Não carregamos senha existente.
-         * Senha jamais deve voltar da API.
-         */
         password: "",
-
         employeeId: user.employeeId,
         employeeName: user.employeeName,
-
         active: user.active,
-
         roleIds: [...user.roleIds],
-
         permissionIds: [...user.permissionIds],
       });
     } else {
@@ -192,6 +187,47 @@ export default function Users() {
     setOpen(true);
   }
 
+  function openPasswordModal(user: User) {
+    if (!canManage) return;
+    setPasswordTarget(user);
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError("");
+    setActionError("");
+  }
+
+  async function submitPasswordChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!passwordTarget || !canManage) return;
+
+    if (newPassword.length < 8) {
+      setPasswordError("A nova senha deve possuir pelo menos 8 caracteres.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("A confirmação de senha não confere.");
+      return;
+    }
+
+    try {
+      setPasswordBusy(true);
+      setPasswordError("");
+      await accessService.changeUserPassword(passwordTarget.id, newPassword);
+      setPasswordTarget(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPasswordError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível alterar a senha do usuário.",
+      );
+    } finally {
+      setPasswordBusy(false);
+    }
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -199,23 +235,14 @@ export default function Users() {
       return;
     }
 
-    /*
-     * Nome e e-mail
-     */
     if (!form.name.trim() || !/^\S+@\S+\.\S+$/.test(form.email.trim())) {
       setError("Informe nome e e-mail válidos.");
-
       setTab("data");
       return;
     }
 
-    /*
-     * Senha é obrigatória somente
-     * na criação.
-     */
     if (!selected && (!form.password || form.password.length < 8)) {
       setError("A senha deve possuir pelo menos 8 caracteres.");
-
       setTab("data");
       return;
     }
@@ -227,17 +254,13 @@ export default function Users() {
       await accessService.saveUser(
         {
           ...form,
-
           name: form.name.trim(),
-
           email: form.email.trim(),
         },
-
         selected?.id,
       );
 
       await load();
-
       setOpen(false);
     } catch (err) {
       setError(
@@ -259,7 +282,6 @@ export default function Users() {
 
     try {
       await accessService.toggleUser(user.id);
-
       await load();
     } catch (err) {
       setActionError(
@@ -291,10 +313,7 @@ export default function Users() {
 
       <main className="min-h-screen pt-[72px] md:ml-[250px] md:pt-[82px]">
         <div className="mx-auto max-w-[1400px] p-4 sm:p-6 lg:p-8">
-          {/* =====================================
-              CABEÇALHO
-          ====================================== */}
-
+          {/* CABEÇALHO */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold text-primary">
@@ -321,10 +340,7 @@ export default function Users() {
             )}
           </div>
 
-          {/* =====================================
-              ERROS
-          ====================================== */}
-
+          {/* ERROS */}
           {loadError && (
             <p
               role="alert"
@@ -343,13 +359,9 @@ export default function Users() {
             </p>
           )}
 
-          {/* =====================================
-              CONTEÚDO
-          ====================================== */}
-
+          {/* CONTEÚDO */}
           <section className="rounded-2xl border border-app-border bg-surface">
             {/* FILTROS */}
-
             <div className="grid gap-3 border-b border-app-border p-4 sm:grid-cols-[1fr_180px]">
               <input
                 className={field}
@@ -364,16 +376,10 @@ export default function Users() {
                 onChange={(e) => setFilter(e.target.value)}
               >
                 <option value="ALL">Todos os status</option>
-
                 <option value="ACTIVE">Ativos</option>
-
                 <option value="INACTIVE">Inativos</option>
               </select>
             </div>
-
-            {/* =================================
-                LOADING
-            ================================== */}
 
             {loading && (
               <div className="p-10 text-center">
@@ -381,10 +387,7 @@ export default function Users() {
               </div>
             )}
 
-            {/* =================================
-                DESKTOP
-            ================================== */}
-
+            {/* DESKTOP */}
             {!loading && (
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-left text-sm">
@@ -395,7 +398,6 @@ export default function Users() {
                         "Funcionário vinculado",
                         "Perfis",
                         "Status",
-
                         ...(canManage ? ["Ações"] : []),
                       ].map((header) => (
                         <th key={header} className="p-4">
@@ -412,7 +414,6 @@ export default function Users() {
                         className="group border-t border-app-border transition-colors duration-200 hover:bg-surface-hover/60"
                       >
                         {/* USUÁRIO */}
-
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-icon-surface text-xs font-bold text-primary">
@@ -429,20 +430,17 @@ export default function Users() {
                               <p className="font-semibold text-foreground">
                                 {user.name}
                               </p>
-
                               <p className="text-xs text-muted">{user.email}</p>
                             </div>
                           </div>
                         </td>
 
                         {/* FUNCIONÁRIO */}
-
                         <td className="p-4 text-muted">
                           {user.employeeName || "Não vinculado"}
                         </td>
 
                         {/* PERFIS */}
-
                         <td className="p-4 text-muted">
                           {roles
                             .filter((role) => user.roleIds.includes(role.id))
@@ -451,7 +449,6 @@ export default function Users() {
                         </td>
 
                         {/* STATUS */}
-
                         <td className="p-4">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full bg-surface-secondary px-2.5 py-1 text-xs font-semibold ${
@@ -463,13 +460,11 @@ export default function Users() {
                                 user.active ? "bg-emerald-500" : "bg-muted"
                               }`}
                             />
-
                             {user.active ? "Ativo" : "Inativo"}
                           </span>
                         </td>
 
                         {/* AÇÕES */}
-
                         {canManage && (
                           <td className="p-4">
                             <div className="flex flex-wrap items-center gap-1">
@@ -481,6 +476,16 @@ export default function Users() {
                               >
                                 <Pencil size={13} />
                                 Editar
+                              </button>
+
+                              <button
+                                type="button"
+                                title="Alterar senha do usuário"
+                                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold text-muted transition-all duration-200 hover:bg-surface-secondary hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                                onClick={() => openPasswordModal(user)}
+                              >
+                                <KeyRound size={13} />
+                                Senha
                               </button>
 
                               <button
@@ -498,7 +503,6 @@ export default function Users() {
                                 ) : (
                                   <UserRoundCheck size={13} />
                                 )}
-
                                 {user.active ? "Desativar" : "Ativar"}
                               </button>
                             </div>
@@ -511,10 +515,7 @@ export default function Users() {
               </div>
             )}
 
-            {/* =================================
-                MOBILE
-            ================================== */}
-
+            {/* MOBILE */}
             {!loading && (
               <div className="grid gap-3 p-4 md:hidden">
                 {filtered.map((user) => (
@@ -537,7 +538,6 @@ export default function Users() {
                         <p className="truncate font-semibold text-foreground">
                           {user.name}
                         </p>
-
                         <p className="break-all text-xs text-muted">
                           {user.email}
                         </p>
@@ -583,6 +583,14 @@ export default function Users() {
                         <button
                           type="button"
                           className={secondary}
+                          onClick={() => openPasswordModal(user)}
+                        >
+                          Alterar senha
+                        </button>
+
+                        <button
+                          type="button"
+                          className={secondary}
                           onClick={() => void toggle(user)}
                         >
                           {user.active ? "Desativar" : "Ativar"}
@@ -594,10 +602,6 @@ export default function Users() {
               </div>
             )}
 
-            {/* =================================
-                VAZIO
-            ================================== */}
-
             {!loading && filtered.length === 0 && (
               <p className="p-8 text-center text-sm text-muted">
                 Nenhum usuário encontrado.
@@ -607,10 +611,7 @@ export default function Users() {
         </div>
       </main>
 
-      {/* =========================================
-          MODAL
-      ========================================== */}
-
+      {/* MODAL DE EDIÇÃO / CRIAÇÃO */}
       {open && canManage && (
         <Modal
           title={selected ? "Editar usuário" : "Novo usuário"}
@@ -621,15 +622,11 @@ export default function Users() {
           }}
         >
           <form onSubmit={save}>
-            {/* ABAS */}
-
             <div className="mb-5 flex flex-wrap gap-2">
               {(
                 [
                   ["data", "Dados"],
-
                   ["roles", "Perfis"],
-
                   ["permissions", "Permissões"],
                 ] as const
               ).map(([id, label]) => (
@@ -644,14 +641,8 @@ export default function Users() {
               ))}
             </div>
 
-            {/* =================================
-                DADOS
-            ================================== */}
-
             {tab === "data" && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {/* NOME */}
-
                 <label className="text-sm text-foreground">
                   Nome
                   <input
@@ -665,8 +656,6 @@ export default function Users() {
                     }
                   />
                 </label>
-
-                {/* E-MAIL */}
 
                 <label className="text-sm text-foreground">
                   E-mail
@@ -682,8 +671,6 @@ export default function Users() {
                     }
                   />
                 </label>
-
-                {/* SENHA - SOMENTE CADASTRO */}
 
                 {!selected && (
                   <label className="text-sm text-foreground sm:col-span-2">
@@ -709,8 +696,6 @@ export default function Users() {
                   </label>
                 )}
 
-                {/* FUNCIONÁRIO */}
-
                 <label className="text-sm text-foreground sm:col-span-2">
                   Funcionário vinculado
                   <select
@@ -719,16 +704,13 @@ export default function Users() {
                     disabled={!canViewEmployees}
                     onChange={(e) => {
                       const employeeId = e.target.value;
-
                       const employee = employees.find(
                         (item) => item.id === employeeId,
                       );
 
                       setForm({
                         ...form,
-
                         employeeId: employeeId || null,
-
                         employeeName: employee?.name ?? null,
                       });
                     }}
@@ -754,8 +736,6 @@ export default function Users() {
                   )}
                 </label>
 
-                {/* ATIVO */}
-
                 <label className="flex items-center gap-2 text-sm text-foreground">
                   <input
                     type="checkbox"
@@ -763,7 +743,6 @@ export default function Users() {
                     onChange={(e) =>
                       setForm({
                         ...form,
-
                         active: e.target.checked,
                       })
                     }
@@ -772,10 +751,6 @@ export default function Users() {
                 </label>
               </div>
             )}
-
-            {/* =================================
-                PERFIS
-            ================================== */}
 
             {tab === "roles" && (
               <div className="space-y-3">
@@ -796,7 +771,6 @@ export default function Users() {
                       onChange={(e) => {
                         setForm({
                           ...form,
-
                           roleIds: e.target.checked
                             ? [...form.roleIds, role.id]
                             : form.roleIds.filter((id) => id !== role.id),
@@ -806,7 +780,6 @@ export default function Users() {
 
                     <span>
                       <strong>{role.name}</strong>
-
                       <span className="block text-xs text-muted">
                         {role.description}
                       </span>
@@ -815,10 +788,6 @@ export default function Users() {
                 ))}
               </div>
             )}
-
-            {/* =================================
-                PERMISSÕES
-            ================================== */}
 
             {tab === "permissions" && (
               <>
@@ -846,10 +815,6 @@ export default function Users() {
               </>
             )}
 
-            {/* =================================
-                ERRO DO FORMULÁRIO
-            ================================== */}
-
             {error && (
               <p
                 role="alert"
@@ -858,10 +823,6 @@ export default function Users() {
                 {error}
               </p>
             )}
-
-            {/* =================================
-                AÇÕES
-            ================================== */}
 
             <div className="mt-6 flex justify-end gap-2 border-t border-app-border pt-4">
               <button
@@ -879,6 +840,82 @@ export default function Users() {
                   : selected
                     ? "Salvar alterações"
                     : "Criar usuário"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* MODAL DE ALTERAÇÃO DE SENHA */}
+      {passwordTarget && canManage && (
+        <Modal
+          title={`Alterar senha · ${passwordTarget.name}`}
+          onClose={() => {
+            if (!passwordBusy) {
+              setPasswordTarget(null);
+            }
+          }}
+        >
+          <form onSubmit={submitPasswordChange}>
+            <p className="mb-4 text-xs text-muted">
+              Defina uma nova senha de acesso para{" "}
+              <strong className="text-foreground">
+                {passwordTarget.email}
+              </strong>
+              . A senha atual não é exibida por segurança.
+            </p>
+
+            <div className="grid gap-4">
+              <label className="text-sm text-foreground">
+                Nova senha
+                <input
+                  type="password"
+                  minLength={8}
+                  autoComplete="new-password"
+                  className={`mt-2 ${field}`}
+                  placeholder="Mínimo de 8 caracteres"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={passwordBusy}
+                />
+              </label>
+
+              <label className="text-sm text-foreground">
+                Confirmar nova senha
+                <input
+                  type="password"
+                  minLength={8}
+                  autoComplete="new-password"
+                  className={`mt-2 ${field}`}
+                  placeholder="Repita a nova senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={passwordBusy}
+                />
+              </label>
+            </div>
+
+            {passwordError && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-sm text-danger"
+              >
+                {passwordError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2 border-t border-app-border pt-4">
+              <button
+                type="button"
+                className={secondary}
+                disabled={passwordBusy}
+                onClick={() => setPasswordTarget(null)}
+              >
+                Cancelar
+              </button>
+
+              <button type="submit" disabled={passwordBusy} className={primary}>
+                {passwordBusy ? "Alterando..." : "Salvar nova senha"}
               </button>
             </div>
           </form>

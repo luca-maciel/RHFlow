@@ -17,6 +17,7 @@ import {
   ChevronDown,
   X,
   FileText,
+  History,
 } from "lucide-react";
 
 
@@ -129,6 +130,12 @@ const adminItems: MenuItem[] = [
       "PERMISSOES_GERENCIAR",
     ],
   },
+  {
+  label: "Auditoria",
+  icon: History,
+  path: "/auditoria",
+  permissions: ["AUDITORIA_VISUALIZAR"],
+},
 ];
 
 export default function Sidebar({

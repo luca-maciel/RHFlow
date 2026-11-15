@@ -3,6 +3,10 @@ package rhflow.backend.service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -16,18 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import rhflow.backend.dto.AuthMeResponse;
 import rhflow.backend.dto.LoginRequest;
 import rhflow.backend.dto.LoginResponse;
-import rhflow.backend.entity.postgresql.Usuario;
-import rhflow.backend.repository.postgresql.UsuarioRepository;
-
-import java.util.UUID;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import rhflow.backend.dto.AuthMeResponse;
 import rhflow.backend.entity.postgresql.Perfil;
+import rhflow.backend.entity.postgresql.Usuario;
 import rhflow.backend.exception.ResourceNotFoundException;
+import rhflow.backend.repository.postgresql.UsuarioRepository;
 
 @Service
 public class AuthService {
@@ -35,16 +34,19 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
+    private final AuditoriaService auditoriaService;
     private final long expirationMinutes;
 
     public AuthService(
             UsuarioRepository usuarioRepository,
             PasswordEncoder passwordEncoder,
             JwtEncoder jwtEncoder,
+            AuditoriaService auditoriaService,
             @Value("${app.jwt.expiration-minutes}") long expirationMinutes) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
+        this.auditoriaService = auditoriaService;
         this.expirationMinutes = expirationMinutes;
     }
 
@@ -65,7 +67,7 @@ public class AuthService {
                 || !passwordEncoder.matches(
                         request.senha(),
                         usuario.getSenhaHash())) {
-            new ResponseStatusException(
+            throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Credenciais inválidas");
         }
@@ -90,11 +92,22 @@ public class AuthService {
         String token = jwtEncoder.encode(
                 JwtEncoderParameters.from(header, claims)).getTokenValue();
 
+        auditoriaService.registrarComoUsuario(
+                usuario.getId().toString(),
+                usuario.getNome() + " (" + usuario.getEmail() + ")",
+                "LOGIN",
+                "AUTENTICACAO",
+                usuario.getId().toString(),
+                "Login realizado por " + usuario.getNome(),
+                Map.of("email", usuario.getEmail())
+        );
+
         return new LoginResponse(
                 token,
                 "Bearer",
                 expirationMinutes * 60);
     }
+
     @Transactional(readOnly = true)
     public AuthMeResponse me(UUID usuarioId) {
 

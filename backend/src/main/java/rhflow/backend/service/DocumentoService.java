@@ -21,6 +21,7 @@ import rhflow.backend.repository.postgresql.SolicitacaoDocumentoRepository;
 import rhflow.backend.repository.postgresql.UsuarioRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -32,18 +33,21 @@ public class DocumentoService {
     private final FuncionarioRepository funcionarioRepository;
     private final UsuarioRepository usuarioRepository;
     private final StorageService storageService;
+    private final AuditoriaService auditoriaService;
 
     public DocumentoService(
             DocumentoRepository documentoRepository,
             SolicitacaoDocumentoRepository solicitacaoRepository,
             FuncionarioRepository funcionarioRepository,
             UsuarioRepository usuarioRepository,
-            StorageService storageService) {
+            StorageService storageService,
+            AuditoriaService auditoriaService) {
         this.documentoRepository = documentoRepository;
         this.solicitacaoRepository = solicitacaoRepository;
         this.funcionarioRepository = funcionarioRepository;
         this.usuarioRepository = usuarioRepository;
         this.storageService = storageService;
+        this.auditoriaService = auditoriaService;
     }
 
     public DocumentoResponse enviarDocumento(
@@ -81,9 +85,13 @@ public class DocumentoService {
         documento.setSolicitacao(solicitacao);
         documento.setTitulo(titulo.trim());
         documento.setTipo(tipo);
-        documento.setNomeArquivoOriginal(arquivo.getOriginalFilename() != null ? arquivo.getOriginalFilename() : "documento");
+        documento.setNomeArquivoOriginal(
+                arquivo.getOriginalFilename() != null ? arquivo.getOriginalFilename() : "documento"
+        );
         documento.setCaminhoArquivo(nomeArmazenado);
-        documento.setContentType(arquivo.getContentType() != null ? arquivo.getContentType() : "application/octet-stream");
+        documento.setContentType(
+                arquivo.getContentType() != null ? arquivo.getContentType() : "application/octet-stream"
+        );
         documento.setTamanhoBytes(arquivo.getSize());
         documento.setObservacao(observacao != null && !observacao.isBlank() ? observacao.trim() : null);
 
@@ -93,7 +101,33 @@ public class DocumentoService {
             solicitacao.setStatus(StatusSolicitacaoDocumento.CONCLUIDA);
             solicitacao.setDocumento(salvo);
             solicitacaoRepository.save(solicitacao);
+
+            auditoriaService.registrar(
+                    "ATENDER_SOLICITACAO_DOCUMENTO",
+                    "SOLICITACAO_DOCUMENTO",
+                    solicitacao.getId().toString(),
+                    "Solicitação de " + solicitacao.getTipoDocumento().name()
+                            + " atendida para " + funcionario.getNome(),
+                    Map.of(
+                            "documentoId", salvo.getId().toString(),
+                            "titulo", salvo.getTitulo(),
+                            "funcionarioId", funcionario.getId().toString()
+                    )
+            );
         }
+
+        auditoriaService.registrar(
+                "ENVIAR_DOCUMENTO",
+                "DOCUMENTO",
+                salvo.getId().toString(),
+                "Documento '" + salvo.getTitulo() + "' enviado para " + funcionario.getNome(),
+                Map.of(
+                        "tipo", salvo.getTipo().name(),
+                        "arquivo", salvo.getNomeArquivoOriginal(),
+                        "tamanhoBytes", salvo.getTamanhoBytes(),
+                        "funcionarioId", funcionario.getId().toString()
+                )
+        );
 
         return toDocumentoResponse(salvo);
     }
@@ -139,8 +173,20 @@ public class DocumentoService {
     public void desativarDocumento(UUID documentoId) {
         Documento documento = documentoRepository.findById(documentoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Documento não encontrado."));
+
         documento.setAtivo(false);
         documentoRepository.save(documento);
+
+        auditoriaService.registrar(
+                "REMOVER_DOCUMENTO",
+                "DOCUMENTO",
+                documento.getId().toString(),
+                "Documento '" + documento.getTitulo() + "' removido",
+                Map.of(
+                        "titulo", documento.getTitulo(),
+                        "funcionarioId", documento.getFuncionario().getId().toString()
+                )
+        );
     }
 
     // --- SOLICITAÇÕES INTERNAS DE DOCUMENTOS ---
@@ -158,7 +204,20 @@ public class DocumentoService {
         );
         solicitacao.setStatus(StatusSolicitacaoDocumento.PENDENTE);
 
-        return toSolicitacaoResponse(solicitacaoRepository.save(solicitacao));
+        SolicitacaoDocumento salva = solicitacaoRepository.save(solicitacao);
+
+        auditoriaService.registrar(
+                "SOLICITAR_DOCUMENTO",
+                "SOLICITACAO_DOCUMENTO",
+                salva.getId().toString(),
+                "Solicitação de " + salva.getTipoDocumento().name() + " aberta por " + funcionario.getNome(),
+                Map.of(
+                        "tipoDocumento", salva.getTipoDocumento().name(),
+                        "funcionarioId", funcionario.getId().toString()
+                )
+        );
+
+        return toSolicitacaoResponse(salva);
     }
 
     @Transactional(readOnly = true)
@@ -188,7 +247,23 @@ public class DocumentoService {
 
         solicitacao.setStatus(StatusSolicitacaoDocumento.REJEITADA);
         solicitacao.setMotivoRejeicao(motivo != null && !motivo.isBlank() ? motivo.trim() : null);
-        return toSolicitacaoResponse(solicitacaoRepository.save(solicitacao));
+
+        SolicitacaoDocumento atualizada = solicitacaoRepository.save(solicitacao);
+
+        auditoriaService.registrar(
+                "REJEITAR_SOLICITACAO_DOCUMENTO",
+                "SOLICITACAO_DOCUMENTO",
+                atualizada.getId().toString(),
+                "Solicitação de " + atualizada.getTipoDocumento().name()
+                        + " rejeitada (" + atualizada.getFuncionario().getNome() + ")",
+                Map.of(
+                        "motivo", atualizada.getMotivoRejeicao() != null
+                                ? atualizada.getMotivoRejeicao()
+                                : "Não informado"
+                )
+        );
+
+        return toSolicitacaoResponse(atualizada);
     }
 
     public SolicitacaoDocumentoResponse cancelarMinhaSolicitacao(UUID id, UUID usuarioId) {
@@ -205,7 +280,18 @@ public class DocumentoService {
         }
 
         solicitacao.setStatus(StatusSolicitacaoDocumento.CANCELADA);
-        return toSolicitacaoResponse(solicitacaoRepository.save(solicitacao));
+        SolicitacaoDocumento atualizada = solicitacaoRepository.save(solicitacao);
+
+        auditoriaService.registrar(
+                "CANCELAR_SOLICITACAO_DOCUMENTO",
+                "SOLICITACAO_DOCUMENTO",
+                atualizada.getId().toString(),
+                "Solicitação de " + atualizada.getTipoDocumento().name()
+                        + " cancelada por " + funcionario.getNome(),
+                Map.of("tipoDocumento", atualizada.getTipoDocumento().name())
+        );
+
+        return toSolicitacaoResponse(atualizada);
     }
 
     private Funcionario buscarFuncionarioDoUsuario(UUID usuarioId) {

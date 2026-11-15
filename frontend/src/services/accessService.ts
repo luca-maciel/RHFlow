@@ -610,6 +610,10 @@ export const accessService = {
     }
   },
 
+  async changeUserPassword(id: string, novaSenha: string): Promise<void> {
+    await api.patch(`/usuarios/${id}/senha`, { novaSenha });
+  },
+
   async toggleUser(
     id: string,
   ): Promise<void> {

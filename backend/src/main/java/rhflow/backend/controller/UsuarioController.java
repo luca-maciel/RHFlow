@@ -15,6 +15,7 @@ import rhflow.backend.dto.UsuarioRequest;
 import rhflow.backend.dto.UsuarioResponse;
 import rhflow.backend.dto.UsuarioUpdateRequest;
 import rhflow.backend.service.UsuarioService;
+import rhflow.backend.dto.AlterarSenhaUsuarioRequest;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -144,6 +145,16 @@ public class UsuarioController {
     public ResponseEntity<Void> ativar(
             @PathVariable UUID id) {
         usuarioService.ativar(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('USUARIOS_GERENCIAR')")
+    @PatchMapping("/{id}/senha")
+    public ResponseEntity<Void> alterarSenha(
+            @PathVariable UUID id,
+            @Valid @RequestBody AlterarSenhaUsuarioRequest request) {
+        usuarioService.alterarSenha(id, request.novaSenha());
 
         return ResponseEntity.noContent().build();
     }

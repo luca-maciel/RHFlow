@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -39,14 +40,17 @@ public class FeriasService {
     private final FeriasRepository feriasRepository;
     private final FuncionarioRepository funcionarioRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
 
     public FeriasService(
             FeriasRepository feriasRepository,
             FuncionarioRepository funcionarioRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            AuditoriaService auditoriaService) {
         this.feriasRepository = feriasRepository;
         this.funcionarioRepository = funcionarioRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     public FeriasResponse solicitar(FeriasRequest request) {
@@ -159,7 +163,22 @@ public class FeriasService {
         ferias.setStatus(StatusFerias.SOLICITADA);
         ferias.setObservacao(observacao);
 
-        return toResponse(feriasRepository.save(ferias));
+        Ferias salva = feriasRepository.save(ferias);
+
+        auditoriaService.registrar(
+                "SOLICITAR_FERIAS",
+                "FERIAS",
+                salva.getId().toString(),
+                "Solicitação de férias (" + salva.getQuantidadeDias() + " dias) para " + funcionario.getNome(),
+                Map.of(
+                        "funcionarioId", funcionario.getId().toString(),
+                        "inicioGozo", salva.getInicioGozo().toString(),
+                        "fimGozo", salva.getFimGozo().toString(),
+                        "dias", salva.getQuantidadeDias()
+                )
+        );
+
+        return toResponse(salva);
     }
 
     private LocalDate[] resolverPeriodoAquisitivo(
@@ -295,21 +314,32 @@ public class FeriasService {
 
             if (ferias.getStatus() == StatusFerias.APROVADA) {
                 if (hoje.isAfter(ferias.getFimGozo())) {
-                    // Período aprovado já passou integralmente enquanto o sistema estava offline
                     ferias.setStatus(StatusFerias.CONCLUIDA);
                     feriasRepository.save(ferias);
+                    auditoriaService.registrar(
+                            "CONCLUIR_FERIAS_AUTO",
+                            "FERIAS",
+                            ferias.getId().toString(),
+                            "Férias concluídas automaticamente para " + funcionario.getNome(),
+                            Map.of("status", StatusFerias.CONCLUIDA.name())
+                    );
                 } else if (!hoje.isBefore(ferias.getInicioGozo())
                         && funcionario.isAtivo()
                         && funcionario.getStatus() != StatusFuncionario.DESLIGADO) {
-                    // Chegou a data de início: entra automaticamente em gozo
                     ferias.setStatus(StatusFerias.EM_GOZO);
                     funcionario.setStatus(StatusFuncionario.FERIAS);
                     feriasRepository.save(ferias);
                     funcionarioRepository.save(funcionario);
+                    auditoriaService.registrar(
+                            "INICIAR_FERIAS_AUTO",
+                            "FERIAS",
+                            ferias.getId().toString(),
+                            "Férias iniciadas automaticamente para " + funcionario.getNome(),
+                            Map.of("status", StatusFerias.EM_GOZO.name())
+                    );
                 }
             } else if (ferias.getStatus() == StatusFerias.EM_GOZO) {
                 if (hoje.isAfter(ferias.getFimGozo())) {
-                    // O último dia de descanso já passou: conclui automaticamente
                     ferias.setStatus(StatusFerias.CONCLUIDA);
                     if (funcionario.isAtivo()
                             && funcionario.getStatus() == StatusFuncionario.FERIAS) {
@@ -317,6 +347,13 @@ public class FeriasService {
                         funcionarioRepository.save(funcionario);
                     }
                     feriasRepository.save(ferias);
+                    auditoriaService.registrar(
+                            "CONCLUIR_FERIAS_AUTO",
+                            "FERIAS",
+                            ferias.getId().toString(),
+                            "Férias concluídas automaticamente para " + funcionario.getNome(),
+                            Map.of("status", StatusFerias.CONCLUIDA.name())
+                    );
                 }
             }
         }
@@ -330,7 +367,17 @@ public class FeriasService {
         }
 
         ferias.setStatus(StatusFerias.APROVADA);
-        return toResponse(feriasRepository.save(ferias));
+        Ferias atualizada = feriasRepository.save(ferias);
+
+        auditoriaService.registrar(
+                "APROVAR_FERIAS",
+                "FERIAS",
+                atualizada.getId().toString(),
+                "Férias aprovadas para " + atualizada.getFuncionario().getNome(),
+                Map.of("status", atualizada.getStatus().name())
+        );
+
+        return toResponse(atualizada);
     }
 
     public FeriasResponse rejeitar(UUID id) {
@@ -341,7 +388,17 @@ public class FeriasService {
         }
 
         ferias.setStatus(StatusFerias.REJEITADA);
-        return toResponse(feriasRepository.save(ferias));
+        Ferias atualizada = feriasRepository.save(ferias);
+
+        auditoriaService.registrar(
+                "REJEITAR_FERIAS",
+                "FERIAS",
+                atualizada.getId().toString(),
+                "Férias rejeitadas para " + atualizada.getFuncionario().getNome(),
+                Map.of("status", atualizada.getStatus().name())
+        );
+
+        return toResponse(atualizada);
     }
 
     public FeriasResponse reverter(UUID id) {
@@ -353,7 +410,6 @@ public class FeriasService {
                     "Somente solicitações aprovadas ou rejeitadas podem voltar para análise.");
         }
 
-        // Se estava rejeitada, valida novamente saldo e sobreposição antes de reabrir
         if (ferias.getStatus() == StatusFerias.REJEITADA) {
             Funcionario funcionario = ferias.getFuncionario();
 
@@ -388,7 +444,17 @@ public class FeriasService {
         }
 
         ferias.setStatus(StatusFerias.SOLICITADA);
-        return toResponse(feriasRepository.save(ferias));
+        Ferias atualizada = feriasRepository.save(ferias);
+
+        auditoriaService.registrar(
+                "REVERTER_FERIAS",
+                "FERIAS",
+                atualizada.getId().toString(),
+                "Análise de férias revertida para " + atualizada.getFuncionario().getNome(),
+                Map.of("status", atualizada.getStatus().name())
+        );
+
+        return toResponse(atualizada);
     }
 
     public FeriasResponse iniciar(UUID id) {
@@ -421,7 +487,17 @@ public class FeriasService {
         funcionario.setStatus(StatusFuncionario.FERIAS);
 
         funcionarioRepository.save(funcionario);
-        return toResponse(feriasRepository.save(ferias));
+        Ferias atualizada = feriasRepository.save(ferias);
+
+        auditoriaService.registrar(
+                "INICIAR_FERIAS",
+                "FERIAS",
+                atualizada.getId().toString(),
+                "Férias iniciadas manualmente para " + funcionario.getNome(),
+                Map.of("status", atualizada.getStatus().name())
+        );
+
+        return toResponse(atualizada);
     }
 
     public FeriasResponse concluir(UUID id) {
@@ -448,7 +524,17 @@ public class FeriasService {
             funcionarioRepository.save(funcionario);
         }
 
-        return toResponse(feriasRepository.save(ferias));
+        Ferias atualizada = feriasRepository.save(ferias);
+
+        auditoriaService.registrar(
+                "CONCLUIR_FERIAS",
+                "FERIAS",
+                atualizada.getId().toString(),
+                "Férias concluídas manualmente para " + funcionario.getNome(),
+                Map.of("status", atualizada.getStatus().name())
+        );
+
+        return toResponse(atualizada);
     }
 
     public FeriasResponse cancelar(UUID id) {
@@ -459,7 +545,17 @@ public class FeriasService {
         }
 
         ferias.setStatus(StatusFerias.CANCELADA);
-        return toResponse(feriasRepository.save(ferias));
+        Ferias atualizada = feriasRepository.save(ferias);
+
+        auditoriaService.registrar(
+                "CANCELAR_FERIAS",
+                "FERIAS",
+                atualizada.getId().toString(),
+                "Férias canceladas para " + atualizada.getFuncionario().getNome(),
+                Map.of("status", atualizada.getStatus().name())
+        );
+
+        return toResponse(atualizada);
     }
 
     private Ferias buscarFerias(UUID id) {
@@ -500,6 +596,4 @@ public class FeriasService {
                 ferias.getCreatedAt(),
                 ferias.getUpdatedAt());
     }
-
-    
 }

@@ -23,6 +23,7 @@ import Documents from "./pages/Documents/Documents";
 import UsersPage from "./pages/Users/Users";
 import ProfilesPage from "./pages/Roles/Roles";
 import PermissionsPage from "./pages/Permissions/Permissions";
+import AuditLogs from "./pages/Audit/AuditLogs";
 
 export default function App() {
   return (
@@ -152,6 +153,12 @@ export default function App() {
         >
           <Route path="/permissoes" element={<PermissionsPage />} />
         </Route>
+      </Route>
+          {/* ADMINISTRAÇÃO: AUDITORIA */}
+      <Route
+        element={<PermissionRoute permissions={["AUDITORIA_VISUALIZAR"]} />}
+      >
+        <Route path="/auditoria" element={<AuditLogs />} />
       </Route>
 
       {/* ROTAS DESCONHECIDAS */}
