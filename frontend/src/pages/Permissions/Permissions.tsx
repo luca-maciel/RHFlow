@@ -44,12 +44,13 @@ const moduleNames: Record<string, PermissionModule> = {
   PERFIS: "Perfis",
   PERMISSOES: "Permissões",
   FUNCIONARIOS: "Funcionários",
+  CONTRATOS: "Contratos",
   EMPRESAS: "Empresas",
   DEPARTAMENTOS: "Departamentos",
   CARGOS: "Cargos",
   FERIAS: "Férias",
   DOCUMENTOS: "Documentos",
-  AVALIACOES: "Avaliações",
+  AUDITORIA: "Auditoria",
 };
 
 export default function Permissions() {

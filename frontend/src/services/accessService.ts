@@ -92,6 +92,9 @@ function getPermissionModule(
     case "FUNCIONARIOS":
       return "Funcionários";
 
+    case "CONTRATOS":
+      return "Contratos";
+
     case "EMPRESAS":
       return "Empresas";
 
@@ -107,8 +110,8 @@ function getPermissionModule(
     case "DOCUMENTOS":
       return "Documentos";
 
-    case "AVALIACOES":
-      return "Avaliações";
+    case "AUDITORIA":
+      return "Auditoria";
 
     default:
       return "Usuários";

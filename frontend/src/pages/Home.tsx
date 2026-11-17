@@ -24,6 +24,7 @@ import type { Employee } from "../types/employee";
 type BirthdayEvent = {
   id: string;
   name: string;
+  department: string;
   date: Date;
   daysUntil: number;
 };
@@ -34,11 +35,33 @@ type DetailTab =
   | "admissions"
   | "birthdays";
 
+const MONTHS = [
+  { value: "1", label: "Janeiro" },
+  { value: "2", label: "Fevereiro" },
+  { value: "3", label: "Março" },
+  { value: "4", label: "Abril" },
+  { value: "5", label: "Maio" },
+  { value: "6", label: "Junho" },
+  { value: "7", label: "Julho" },
+  { value: "8", label: "Agosto" },
+  { value: "9", label: "Setembro" },
+  { value: "10", label: "Outubro" },
+  { value: "11", label: "Novembro" },
+  { value: "12", label: "Dezembro" },
+];
+
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Bom dia";
   if (hour < 18) return "Boa tarde";
   return "Boa noite";
+}
+
+function formatDepartmentLabel(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return "Sem departamento";
+  if (trimmed.length <= 3) return trimmed.toUpperCase();
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
 function parseLocalDate(value: string) {
@@ -73,6 +96,9 @@ function getNextBirthday(employee: Employee): BirthdayEvent | null {
   return {
     id: employee.id,
     name: employee.nome,
+    department: formatDepartmentLabel(
+      employee.departamentoNome ?? "Sem departamento",
+    ),
     date: birthday,
     daysUntil,
   };
@@ -101,6 +127,15 @@ export default function Home() {
     hasPermission("CARGOS_VISUALIZAR") ||
     hasPermission("CARGOS_GERENCIAR");
 
+  const canViewVacations =
+    hasPermission("FERIAS_APROVAR") ||
+    hasPermission("FERIAS_GERENCIAR") ||
+    hasPermission("FERIAS_VISUALIZAR");
+
+  const canViewDocuments =
+    hasPermission("DOCUMENTOS_GERENCIAR") ||
+    hasPermission("DOCUMENTOS_VISUALIZAR");
+
   const hasDashboardAccess =
     canViewEmployees ||
     canViewCompanies ||
@@ -116,17 +151,26 @@ export default function Home() {
   const [totalCompanies, setTotalCompanies] = useState(0);
   const [totalDepartments, setTotalDepartments] = useState(0);
   const [totalPositions, setTotalPositions] = useState(0);
+  const [pendingVacations, setPendingVacations] = useState(0);
+  const [pendingDocuments, setPendingDocuments] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [detailTab, setDetailTab] = useState<DetailTab>("departments");
 
+  // Filtros interativos do Detalhamento
+  const [statusDeptFilter, setStatusDeptFilter] = useState("TODOS");
+  const [selectedAdmissionMonth, setSelectedAdmissionMonth] = useState<
+    string | null
+  >(null);
+  const [birthdayMonthFilter, setBirthdayMonthFilter] = useState("PROXIMOS");
+
   /*
-   * ESTRUTURA ORGANIZACIONAL
+   * ESTRUTURA ORGANIZACIONAL E PENDÊNCIAS
    */
   useEffect(() => {
     if (!hasDashboardAccess) return;
 
-    async function loadOrganization() {
+    async function loadOrganizationAndPending() {
       const requests: Promise<void>[] = [];
 
       if (canViewCompanies) {
@@ -153,22 +197,41 @@ export default function Home() {
         );
       }
 
-      const results = await Promise.allSettled(requests);
-      const failed = results.some((result) => result.status === "rejected");
-
-      if (failed) {
-        console.error(
-          "Um ou mais indicadores organizacionais não puderam ser carregados.",
+      if (canViewVacations) {
+        requests.push(
+          api
+            .get<Array<{ status?: string }>>("/ferias")
+            .then(({ data }) => {
+              setPendingVacations(
+                data.filter((item) => item.status === "SOLICITADA").length,
+              );
+            }),
         );
       }
+
+      if (canViewDocuments) {
+        requests.push(
+          api
+            .get<Array<{ status?: string }>>("/solicitacoes-documento")
+            .then(({ data }) => {
+              setPendingDocuments(
+                data.filter((item) => item.status === "PENDENTE").length,
+              );
+            }),
+        );
+      }
+
+      await Promise.allSettled(requests);
     }
 
-    void loadOrganization();
+    void loadOrganizationAndPending();
   }, [
     hasDashboardAccess,
     canViewCompanies,
     canViewDepartments,
     canViewPositions,
+    canViewVacations,
+    canViewDocuments,
   ]);
 
   /*
@@ -232,6 +295,26 @@ export default function Home() {
   }, [employees]);
 
   /*
+   * OPÇÕES DE DEPARTAMENTO PARA FILTROS
+   */
+  const departmentOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    employees.forEach((employee) => {
+      if (employee.departamentoId) {
+        map.set(
+          employee.departamentoId,
+          formatDepartmentLabel(
+            employee.departamentoNome ?? "Sem departamento",
+          ),
+        );
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [employees]);
+
+  /*
    * DISTRIBUIÇÃO POR DEPARTAMENTO
    */
   const departmentDistribution = useMemo(() => {
@@ -246,7 +329,9 @@ export default function Home() {
 
     activeEmployees.forEach((employee) => {
       const id = employee.departamentoId ?? "SEM_DEPARTAMENTO";
-      const name = employee.departamentoNome ?? "Sem departamento";
+      const name = formatDepartmentLabel(
+        employee.departamentoNome ?? "Sem departamento",
+      );
       const current = groups.get(id);
 
       if (current) {
@@ -269,9 +354,16 @@ export default function Home() {
   }, [employees]);
 
   /*
-   * DISTRIBUIÇÃO POR STATUS
+   * DISTRIBUIÇÃO POR STATUS (COM FILTRO DE DEPARTAMENTO)
    */
   const statusDistribution = useMemo(() => {
+    const scopedEmployees =
+      statusDeptFilter === "TODOS"
+        ? employees
+        : employees.filter(
+            (employee) => employee.departamentoId === statusDeptFilter,
+          );
+
     const statuses = [
       { key: "ATIVO", label: "Ativos", description: "Em atividade" },
       { key: "FERIAS", label: "Férias", description: "Em período de férias" },
@@ -288,7 +380,7 @@ export default function Home() {
     ];
 
     return statuses.map((status) => {
-      const total = employees.filter(
+      const total = scopedEmployees.filter(
         (employee) => employee.status === status.key,
       ).length;
 
@@ -296,12 +388,12 @@ export default function Home() {
         ...status,
         total,
         percentage:
-          employees.length === 0
+          scopedEmployees.length === 0
             ? 0
-            : Math.round((total / employees.length) * 100),
+            : Math.round((total / scopedEmployees.length) * 100),
       };
     });
-  }, [employees]);
+  }, [employees, statusDeptFilter]);
 
   /*
    * ADMISSÕES DOS ÚLTIMOS 12 MESES
@@ -317,14 +409,19 @@ export default function Home() {
       );
       const key = getMonthKey(date);
 
-      const total = employees.filter((employee) => {
+      const list = employees.filter((employee) => {
         const admission = parseLocalDate(employee.dataAdmissao);
         return getMonthKey(admission) === key;
-      }).length;
+      });
 
       return {
         key,
-        total,
+        total: list.length,
+        employees: list,
+        fullLabel: date.toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        }),
         label: date
           .toLocaleDateString("pt-BR", { month: "short" })
           .replace(".", ""),
@@ -337,24 +434,49 @@ export default function Home() {
     1,
   );
 
+  const selectedAdmissionData = useMemo(
+    () =>
+      monthlyAdmissions.find((item) => item.key === selectedAdmissionMonth) ??
+      null,
+    [monthlyAdmissions, selectedAdmissionMonth],
+  );
+
   /*
-   * ANIVERSÁRIOS
+   * ANIVERSÁRIOS (PRÓXIMOS OU FILTRADOS POR MÊS)
    */
-  const upcomingBirthdays = useMemo(() => {
-    return employees
-      .filter((employee) => employee.status !== "DESLIGADO")
+  const filteredBirthdays = useMemo(() => {
+    const activeList = employees.filter(
+      (employee) => employee.status !== "DESLIGADO",
+    );
+
+    if (birthdayMonthFilter === "PROXIMOS") {
+      return activeList
+        .map(getNextBirthday)
+        .filter((event): event is BirthdayEvent => event !== null)
+        .sort((a, b) => a.date.getTime() - b.date.getTime())
+        .slice(0, 6);
+    }
+
+    const targetMonth = Number(birthdayMonthFilter);
+
+    return activeList
+      .filter((employee) => {
+        if (!employee.dataNascimento) return false;
+        const [, month] = employee.dataNascimento.split("-").map(Number);
+        return month === targetMonth;
+      })
       .map(getNextBirthday)
       .filter((event): event is BirthdayEvent => event !== null)
-      .sort((a, b) => a.date.getTime() - b.date.getTime())
-      .slice(0, 6);
-  }, [employees]);
+      .sort((a, b) => a.date.getDate() - b.date.getDate());
+  }, [employees, birthdayMonthFilter]);
 
-  // Redireciona colaborador comum sem permissões gerenciais para a área de férias
   if (!hasDashboardAccess) {
     return <Navigate to="/ferias" replace />;
   }
 
-  const firstName = user?.nome?.trim().split(/\s+/)[0] ?? "Usuário";
+  const rawFirstName = user?.nome?.trim().split(/\s+/)[0] ?? "Usuário";
+  const firstName =
+    rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1);
 
   function birthdayBadge(days: number) {
     if (days === 0) return "Hoje";
@@ -382,7 +504,7 @@ export default function Home() {
               {getGreeting()}, {firstName}!
             </h1>
             <p className="mt-1 text-xs text-muted md:text-sm">
-              Resumo do RH atualmente.
+              Acompanhe os indicadores da equipe, pendências e estrutura organizacional.
             </p>
           </section>
 
@@ -427,6 +549,50 @@ export default function Home() {
                 icon="!"
                 onClick={() => navigate("/funcionarios?status=AFASTADO")}
               />
+            </section>
+          )}
+
+          {/* PENDÊNCIAS OPERACIONAIS */}
+          {(canViewVacations || canViewDocuments) && (
+            <section className="mb-6">
+              <div className="mb-4">
+                <h2 className="text-sm font-semibold text-foreground">
+                  Pendências operacionais
+                </h2>
+                <p className="mt-1 text-xs text-muted">
+                  Solicitações aguardando análise ou atendimento pelo RH.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                {canViewVacations && (
+                  <StatCard
+                    title="Férias pendentes"
+                    value={pendingVacations.toString()}
+                    description={
+                      pendingVacations === 1
+                        ? "Solicitação aguardando aprovação"
+                        : "Solicitações aguardando aprovação"
+                    }
+                    icon="✈"
+                    onClick={() => navigate("/ferias")}
+                  />
+                )}
+
+                {canViewDocuments && (
+                  <StatCard
+                    title="Documentos pendentes"
+                    value={pendingDocuments.toString()}
+                    description={
+                      pendingDocuments === 1
+                        ? "Solicitação aguardando emissão"
+                        : "Solicitações aguardando emissão"
+                    }
+                    icon="▤"
+                    onClick={() => navigate("/documentos")}
+                  />
+                )}
+              </div>
             </section>
           )}
 
@@ -637,14 +803,32 @@ export default function Home() {
                     {/* STATUS */}
                     {detailTab === "status" && (
                       <div>
-                        <div className="mb-6">
-                          <h3 className="text-sm font-semibold text-foreground">
-                            Composição da equipe
-                          </h3>
-                          <p className="mt-1 text-xs text-muted">
-                            Distribuição dos funcionários de acordo com a
-                            situação atual.
-                          </p>
+                        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-sm font-semibold text-foreground">
+                              Composição da equipe
+                            </h3>
+                            <p className="mt-1 text-xs text-muted">
+                              Distribuição dos funcionários de acordo com a
+                              situação atual.
+                            </p>
+                          </div>
+
+                          <select
+                            aria-label="Filtrar status por departamento"
+                            value={statusDeptFilter}
+                            onChange={(e) =>
+                              setStatusDeptFilter(e.target.value)
+                            }
+                            className="h-10 rounded-xl border border-app-border bg-background px-3 text-xs text-foreground outline-none transition focus:border-primary sm:w-56"
+                          >
+                            <option value="TODOS">Todos os departamentos</option>
+                            {departmentOptions.map((dept) => (
+                              <option key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -652,9 +836,17 @@ export default function Home() {
                             <button
                               key={item.key}
                               type="button"
-                              onClick={() =>
-                                navigate(`/funcionarios?status=${item.key}`)
-                              }
+                              onClick={() => {
+                                const params = new URLSearchParams({
+                                  status: item.key,
+                                });
+                                if (statusDeptFilter !== "TODOS") {
+                                  params.set("department", statusDeptFilter);
+                                }
+                                navigate(
+                                  `/funcionarios?${params.toString()}`,
+                                );
+                              }}
                               className="rounded-2xl border border-app-border bg-background/40 p-5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-hover"
                             >
                               <div className="flex items-start justify-between gap-3">
@@ -696,7 +888,8 @@ export default function Home() {
                               Admissões nos últimos 12 meses
                             </h3>
                             <p className="mt-1 text-xs text-muted">
-                              Evolução mensal da entrada de novos colaboradores.
+                              Clique em um mês no gráfico para visualizar os
+                              colaboradores admitidos.
                             </p>
                           </div>
 
@@ -713,8 +906,10 @@ export default function Home() {
                         </div>
 
                         <div className="overflow-x-auto">
-                          <div className="flex h-[280px] min-w-[650px] items-end justify-between gap-3 pb-2">
+                          <div className="flex h-[260px] min-w-[650px] items-end justify-between gap-3 pb-2">
                             {monthlyAdmissions.map((item) => {
+                              const isSelected =
+                                selectedAdmissionMonth === item.key;
                               const percentage =
                                 item.total === 0
                                   ? 3
@@ -724,48 +919,167 @@ export default function Home() {
                                     );
 
                               return (
-                                <div
+                                <button
                                   key={item.key}
-                                  className="flex h-full flex-1 flex-col justify-end"
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedAdmissionMonth((prev) =>
+                                      prev === item.key ? null : item.key,
+                                    )
+                                  }
+                                  className="group flex h-full flex-1 flex-col justify-end text-center focus:outline-none"
                                 >
                                   <div className="flex flex-1 items-end">
                                     <div
-                                      title={`${item.total} admissões`}
-                                      className="group relative w-full rounded-t-lg bg-dashboard-surface transition-all duration-200 hover:bg-blue-600"
+                                      title={`${item.fullLabel}: ${item.total} ${
+                                        item.total === 1
+                                          ? "admissão"
+                                          : "admissões"
+                                      }`}
+                                      className={`relative w-full rounded-t-lg transition-all duration-200 ${
+                                        isSelected
+                                          ? "bg-blue-600 ring-2 ring-blue-500/40"
+                                          : "bg-dashboard-surface group-hover:bg-blue-600"
+                                      }`}
                                       style={{ height: `${percentage}%` }}
                                     >
-                                      <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                                      <span
+                                        className={`absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-foreground transition-opacity ${
+                                          isSelected || item.total > 0
+                                            ? "opacity-100"
+                                            : "opacity-0 group-hover:opacity-100"
+                                        }`}
+                                      >
                                         {item.total}
                                       </span>
                                     </div>
                                   </div>
 
-                                  <span className="mt-2 text-center text-[10px] capitalize text-muted-light">
+                                  <span
+                                    className={`mt-2 text-center text-[10px] capitalize ${
+                                      isSelected
+                                        ? "font-bold text-blue-600"
+                                        : "text-muted-light"
+                                    }`}
+                                  >
                                     {item.label}
                                   </span>
-                                </div>
+                                </button>
                               );
                             })}
                           </div>
                         </div>
+
+                        {/* DETALHE DO MÊS SELECIONADO */}
+                        {selectedAdmissionData && (
+                          <div className="mt-6 rounded-2xl border border-app-border bg-background/40 p-4 sm:p-5">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                              <div>
+                                <h4 className="text-xs font-semibold capitalize text-foreground">
+                                  Admitidos em {selectedAdmissionData.fullLabel}
+                                </h4>
+                                <p className="mt-0.5 text-[11px] text-muted">
+                                  {selectedAdmissionData.total}{" "}
+                                  {selectedAdmissionData.total === 1
+                                    ? "colaborador admitido"
+                                    : "colaboradores admitidos"}
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setSelectedAdmissionMonth(null)}
+                                className="text-[11px] font-medium text-muted hover:text-foreground"
+                              >
+                                Fechar
+                              </button>
+                            </div>
+
+                            {selectedAdmissionData.employees.length === 0 ? (
+                              <p className="text-xs text-muted">
+                                Nenhuma admissão registrada neste mês.
+                              </p>
+                            ) : (
+                              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                                {selectedAdmissionData.employees.map((emp) => {
+                                  const [y, m, d] = emp.dataAdmissao.split("-");
+                                  return (
+                                    <button
+                                      key={emp.id}
+                                      type="button"
+                                      onClick={() =>
+                                        navigate(`/funcionarios/${emp.id}`)
+                                      }
+                                      className="flex items-center justify-between gap-3 rounded-xl border border-app-border bg-surface p-3 text-left transition hover:border-blue-500/30 hover:bg-surface-hover"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="truncate text-xs font-semibold text-foreground">
+                                          {emp.nome}
+                                        </p>
+                                        <p className="mt-0.5 truncate text-[10px] text-muted">
+                                          {emp.cargoNome} ·{" "}
+                                          {formatDepartmentLabel(
+                                            emp.departamentoNome ?? "",
+                                          )}
+                                        </p>
+                                      </div>
+
+                                      <span className="shrink-0 rounded-lg bg-icon-surface px-2 py-1 text-[10px] font-semibold text-blue-600">
+                                        {`${d}/${m}/${y}`}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {/* ANIVERSÁRIOS */}
                     {detailTab === "birthdays" && (
                       <div>
-                        <div className="mb-6">
-                          <h3 className="text-sm font-semibold text-foreground">
-                            Próximos aniversários
-                          </h3>
-                          <p className="mt-1 text-xs text-muted">
-                            Colaboradores com aniversários mais próximos.
-                          </p>
+                        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-sm font-semibold text-foreground">
+                              {birthdayMonthFilter === "PROXIMOS"
+                                ? "Próximos aniversários"
+                                : `Aniversariantes de ${
+                                    MONTHS.find(
+                                      (m) => m.value === birthdayMonthFilter,
+                                    )?.label ?? ""
+                                  }`}
+                            </h3>
+                            <p className="mt-1 text-xs text-muted">
+                              {birthdayMonthFilter === "PROXIMOS"
+                                ? "Colaboradores com aniversários mais próximos."
+                                : "Colaboradores ativos que fazem aniversário no mês selecionado."}
+                            </p>
+                          </div>
+
+                          <select
+                            aria-label="Filtrar aniversários por mês"
+                            value={birthdayMonthFilter}
+                            onChange={(e) =>
+                              setBirthdayMonthFilter(e.target.value)
+                            }
+                            className="h-10 rounded-xl border border-app-border bg-background px-3 text-xs text-foreground outline-none transition focus:border-primary sm:w-52"
+                          >
+                            <option value="PROXIMOS">
+                              Próximos aniversários
+                            </option>
+                            {MONTHS.map((month) => (
+                              <option key={month.value} value={month.value}>
+                                {month.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
 
-                        {upcomingBirthdays.length > 0 ? (
+                        {filteredBirthdays.length > 0 ? (
                           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                            {upcomingBirthdays.map((event) => (
+                            {filteredBirthdays.map((event) => (
                               <button
                                 key={event.id}
                                 type="button"
@@ -786,7 +1100,8 @@ export default function Home() {
                                     {event.date.toLocaleDateString("pt-BR", {
                                       day: "2-digit",
                                       month: "long",
-                                    })}
+                                    })}{" "}
+                                    · {event.department}
                                   </p>
                                 </div>
 
@@ -799,7 +1114,7 @@ export default function Home() {
                         ) : (
                           <EmptyDetail
                             icon={<Cake size={22} />}
-                            text="Nenhum aniversário disponível."
+                            text="Nenhum aniversariante encontrado para este filtro."
                           />
                         )}
                       </div>

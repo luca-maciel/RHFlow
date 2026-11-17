@@ -179,12 +179,17 @@ export default function Employees() {
     try {
       setSaving(true);
       setError("");
-      selected
-        ? await employeeService.update(selected.id, data)
-        : await employeeService.create(data);
-      setModal(false);
-      setSelected(null);
-      await load();
+      if (selected) {
+        await employeeService.update(selected.id, data);
+        setModal(false);
+        setSelected(null);
+        await load();
+      } else {
+        const created = await employeeService.create(data);
+        setModal(false);
+        setSelected(null);
+        nav(`/funcionarios/${created.id}`);
+      }
     } catch (e) {
       console.error(e);
       const d = axios.isAxiosError(e) ? e.response?.data : null;

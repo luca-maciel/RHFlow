@@ -1,4 +1,3 @@
-
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -12,14 +11,12 @@ import {
   Users,
   Shield,
   KeyRound,
-  Settings,
   LogOut,
   ChevronDown,
   X,
   FileText,
   History,
 } from "lucide-react";
-
 
 import type { LucideIcon } from "lucide-react";
 
@@ -91,15 +88,15 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-  label: "Documentos",
-  icon: FileText,
-  path: "/documentos",
-  permissions: [
-    "DOCUMENTOS_VISUALIZAR",
-    "DOCUMENTOS_SOLICITAR",
-    "DOCUMENTOS_GERENCIAR",
-  ],
-},
+    label: "Documentos",
+    icon: FileText,
+    path: "/documentos",
+    permissions: [
+      "DOCUMENTOS_VISUALIZAR",
+      "DOCUMENTOS_SOLICITAR",
+      "DOCUMENTOS_GERENCIAR",
+    ],
+  },
 ];
 
 const adminItems: MenuItem[] = [
@@ -131,11 +128,11 @@ const adminItems: MenuItem[] = [
     ],
   },
   {
-  label: "Auditoria",
-  icon: History,
-  path: "/auditoria",
-  permissions: ["AUDITORIA_VISUALIZAR"],
-},
+    label: "Auditoria",
+    icon: History,
+    path: "/auditoria",
+    permissions: ["AUDITORIA_VISUALIZAR"],
+  },
 ];
 
 export default function Sidebar({
@@ -154,10 +151,6 @@ export default function Sidebar({
   const [userMenuOpen, setUserMenuOpen] =
     useState(false);
 
-  // ==========================================================
-  // PERMISSÕES
-  // ==========================================================
-
   const canAccess = (item: MenuItem): boolean => {
     if (!item.permissions?.length) {
       return true;
@@ -168,10 +161,6 @@ export default function Sidebar({
 
   const visibleMenuItems = menuItems.filter(canAccess);
   const visibleAdminItems = adminItems.filter(canAccess);
-
-  // ==========================================================
-  // NAVEGAÇÃO
-  // ==========================================================
 
   const isActive = (path: string): boolean =>
     location.pathname === path ||
@@ -193,10 +182,6 @@ export default function Sidebar({
     });
   };
 
-  // ==========================================================
-  // USUÁRIO
-  // ==========================================================
-
   const userName = user?.nome || "Usuário";
 
   const initials = userName
@@ -209,10 +194,6 @@ export default function Sidebar({
 
   const userRole =
     user?.perfis?.join(", ") || "Sem perfil";
-
-  // ==========================================================
-  // ESTILOS
-  // ==========================================================
 
   const itemClass = (active: boolean) =>
     `flex h-11 w-full items-center gap-3 rounded-xl
@@ -232,10 +213,6 @@ export default function Sidebar({
          ? "text-blue-600"
          : "text-muted-light"
      }`;
-
-  // ==========================================================
-  // RENDERIZAR ITEM
-  // ==========================================================
 
   const renderItem = (item: MenuItem) => {
     const active = isActive(item.path);
@@ -266,10 +243,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* ================================================
-          OVERLAY MOBILE
-      ================================================= */}
-
       <div
         onClick={onClose}
         aria-hidden="true"
@@ -285,10 +258,6 @@ export default function Sidebar({
           }
         `}
       />
-
-      {/* ================================================
-          SIDEBAR
-      ================================================= */}
 
       <aside
         className={`
@@ -306,10 +275,6 @@ export default function Sidebar({
           }
         `}
       >
-        {/* ============================================
-            LOGO
-        ============================================= */}
-
         <div
           className="
             flex h-[78px] shrink-0
@@ -358,10 +323,6 @@ export default function Sidebar({
           </button>
         </div>
 
-        {/* ============================================
-            NAVEGAÇÃO
-        ============================================= */}
-
         <nav
           aria-label="Navegação principal"
           className="
@@ -370,8 +331,6 @@ export default function Sidebar({
             px-4 pb-5 pt-5
           "
         >
-          {/* MENU */}
-
           <p
             className="
               mb-3 px-3
@@ -386,8 +345,6 @@ export default function Sidebar({
           <div className="space-y-1">
             {visibleMenuItems.map(renderItem)}
           </div>
-
-          {/* ADMINISTRAÇÃO */}
 
           {visibleAdminItems.length > 0 && (
             <>
@@ -407,57 +364,7 @@ export default function Sidebar({
               </div>
             </>
           )}
-
-          {/* SISTEMA */}
-
-          <p
-            className="
-              mb-3 mt-8 px-3
-              text-[10px] font-semibold
-              uppercase tracking-wider
-              text-muted-light
-            "
-          >
-            Sistema
-          </p>
-
-          {/*
-            Ative a navegação quando a rota
-            /configuracoes estiver implementada.
-          */}
-
-          <div
-            className="
-              flex h-11 w-full
-              items-center gap-3
-              rounded-xl px-3
-              text-left text-[13px]
-              font-medium text-muted-light
-              opacity-60
-            "
-            title="Em desenvolvimento"
-          >
-            <span
-              className="
-                flex h-7 w-7
-                shrink-0 items-center
-                justify-center
-              "
-            >
-              <Settings
-                size={18}
-                strokeWidth={1.8}
-                aria-hidden="true"
-              />
-            </span>
-
-            Configurações
-          </div>
         </nav>
-
-        {/* ============================================
-            USUÁRIO
-        ============================================= */}
 
         <div
           className="
@@ -466,8 +373,6 @@ export default function Sidebar({
             p-4
           "
         >
-          {/* MENU DO USUÁRIO */}
-
           {userMenuOpen && (
             <div
               className="
@@ -514,8 +419,6 @@ export default function Sidebar({
               hover:bg-surface-hover
             "
           >
-            {/* AVATAR */}
-
             <div
               className="
                 flex h-9 w-9
@@ -528,8 +431,6 @@ export default function Sidebar({
             >
               {initials}
             </div>
-
-            {/* INFORMAÇÕES */}
 
             <div className="min-w-0 flex-1">
               <p
@@ -551,8 +452,6 @@ export default function Sidebar({
                 {userRole}
               </p>
             </div>
-
-            {/* MENU */}
 
             <ChevronDown
               size={16}

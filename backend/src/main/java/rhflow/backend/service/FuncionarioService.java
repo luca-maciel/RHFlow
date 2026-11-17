@@ -25,14 +25,17 @@ public class FuncionarioService {
 
     private final FuncionarioRepository funcionarioRepository;
     private final CargoRepository cargoRepository;
+    private final ContratoService contratoService;
     private final AuditoriaService auditoriaService;
 
     public FuncionarioService(
             FuncionarioRepository funcionarioRepository,
             CargoRepository cargoRepository,
+            ContratoService contratoService,
             AuditoriaService auditoriaService) {
         this.funcionarioRepository = funcionarioRepository;
         this.cargoRepository = cargoRepository;
+        this.contratoService = contratoService;
         this.auditoriaService = auditoriaService;
     }
 
@@ -131,6 +134,10 @@ public class FuncionarioService {
         funcionario.setAtivo(false);
 
         Funcionario salvo = funcionarioRepository.save(funcionario);
+        contratoService.encerrarContratoAtivoDoFuncionario(
+                salvo.getId(),
+                request.getDataDemissao()
+        );
 
         auditoriaService.registrar(
                 "DESLIGAR_FUNCIONARIO",

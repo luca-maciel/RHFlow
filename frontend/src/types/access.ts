@@ -3,12 +3,13 @@ export type PermissionModule =
   | "Perfis"
   | "Permissões"
   | "Funcionários"
+  | "Contratos"
   | "Empresas"
   | "Departamentos"
   | "Cargos"
   | "Férias"
   | "Documentos"
-  | "Avaliações";
+  | "Auditoria";
 
 export type Permission = {
   id: string;
