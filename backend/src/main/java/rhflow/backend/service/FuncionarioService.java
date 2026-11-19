@@ -19,6 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.Set;
+
 @Service
 @Transactional
 public class FuncionarioService {
@@ -27,6 +32,106 @@ public class FuncionarioService {
     private final CargoRepository cargoRepository;
     private final ContratoService contratoService;
     private final AuditoriaService auditoriaService;
+    
+    private static final Path FOTOS_DIR = Paths.get("uploads", "fotos-funcionarios");
+    private static final long MAX_FOTO_BYTES = 5 * 1024 * 1024; // 5 MB
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp"
+    );
+
+    public record FotoArquivo(byte[] bytes, String contentType) {}
+
+    public FuncionarioResponse atualizarFoto(UUID id, MultipartFile arquivo) {
+        if (arquivo == null || arquivo.isEmpty()) {
+            throw new BusinessException("Selecione uma imagem válida.");
+        }
+        if (arquivo.getSize() > MAX_FOTO_BYTES) {
+            throw new BusinessException("A foto deve ter no máximo 5 MB.");
+        }
+
+        String contentType = arquivo.getContentType();
+        if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            throw new BusinessException("Formato inválido. Utilize JPEG, PNG ou WEBP.");
+        }
+
+        Funcionario funcionario = buscarFuncionario(id);
+        String ext = switch (contentType.toLowerCase()) {
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            default -> ".jpg";
+        };
+
+        try {
+            Files.createDirectories(FOTOS_DIR);
+            removerArquivoFisico(funcionario.getFotoPath());
+
+            String fileName = id + "_" + System.currentTimeMillis() + ext;
+            Path destino = FOTOS_DIR.resolve(fileName).normalize();
+            Files.copy(arquivo.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
+
+            funcionario.setFotoPath(destino.toString());
+            Funcionario salvo = funcionarioRepository.save(funcionario);
+
+            auditoriaService.registrar(
+                    "ATUALIZAR_FOTO_FUNCIONARIO",
+                    "FUNCIONARIO",
+                    salvo.getId().toString(),
+                    "Foto de perfil do funcionário '" + salvo.getNome() + "' atualizada",
+                    Map.of("contentType", contentType, "tamanhoBytes", arquivo.getSize())
+            );
+
+            return toResponse(salvo);
+        } catch (IOException e) {
+            throw new BusinessException("Erro ao armazenar a foto de perfil.");
+        }
+    }
+
+    @Transactional
+    public FotoArquivo buscarFoto(UUID id) {
+        Funcionario funcionario = buscarFuncionario(id);
+        if (funcionario.getFotoPath() == null || funcionario.getFotoPath().isBlank()) {
+            throw new ResourceNotFoundException("Funcionário não possui foto cadastrada.");
+        }
+
+        try {
+            Path path = Paths.get(funcionario.getFotoPath()).normalize();
+            if (!Files.exists(path)) {
+                throw new ResourceNotFoundException("Arquivo da foto não encontrado.");
+            }
+            byte[] bytes = Files.readAllBytes(path);
+            String probed = Files.probeContentType(path);
+            String contentType = probed != null ? probed : "image/jpeg";
+            return new FotoArquivo(bytes, contentType);
+        } catch (IOException e) {
+            throw new BusinessException("Erro ao ler a foto do funcionário.");
+        }
+    }
+
+    public FuncionarioResponse removerFoto(UUID id) {
+        Funcionario funcionario = buscarFuncionario(id);
+        if (funcionario.getFotoPath() != null && !funcionario.getFotoPath().isBlank()) {
+            removerArquivoFisico(funcionario.getFotoPath());
+            funcionario.setFotoPath(null);
+            funcionario = funcionarioRepository.save(funcionario);
+
+            auditoriaService.registrar(
+                    "REMOVER_FOTO_FUNCIONARIO",
+                    "FUNCIONARIO",
+                    funcionario.getId().toString(),
+                    "Foto de perfil do funcionário '" + funcionario.getNome() + "' removida",
+                    Map.of()
+            );
+        }
+        return toResponse(funcionario);
+    }
+
+    private void removerArquivoFisico(String pathStr) {
+        if (pathStr == null || pathStr.isBlank()) return;
+        try {
+            Files.deleteIfExists(Paths.get(pathStr).normalize());
+        } catch (IOException ignored) {
+        }
+    }
 
     public FuncionarioService(
             FuncionarioRepository funcionarioRepository,
@@ -221,6 +326,11 @@ public class FuncionarioService {
         response.setAtivo(funcionario.isAtivo());
         response.setCreatedAt(funcionario.getCreatedAt());
         response.setUpdatedAt(funcionario.getUpdatedAt());
+
+        response.setPossuiFoto(
+                funcionario.getFotoPath() != null && !funcionario.getFotoPath().isBlank()
+        );
+
         return response;
     }
 

@@ -12,6 +12,10 @@ import rhflow.backend.dto.FuncionarioResponse;
 import rhflow.backend.enums.StatusFuncionario;
 import rhflow.backend.service.FuncionarioService;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -113,5 +117,29 @@ public class FuncionarioController {
                         @PathVariable StatusFuncionario status) {
                 return ResponseEntity.ok(
                                 funcionarioService.contarPorStatus(status));
+        }
+
+        @PreAuthorize("hasAuthority('FUNCIONARIOS_GERENCIAR')")
+        @PostMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        public ResponseEntity<FuncionarioResponse> uploadFoto(
+                        @PathVariable UUID id,
+                        @RequestParam("arquivo") MultipartFile arquivo) {
+                return ResponseEntity.ok(funcionarioService.atualizarFoto(id, arquivo));
+        }
+
+        @PreAuthorize("hasAnyAuthority('FUNCIONARIOS_VISUALIZAR', 'FUNCIONARIOS_GERENCIAR')")
+        @GetMapping("/{id}/foto")
+        public ResponseEntity<byte[]> buscarFoto(@PathVariable UUID id) {
+                FuncionarioService.FotoArquivo foto = funcionarioService.buscarFoto(id);
+                return ResponseEntity.ok()
+                                .contentType(MediaType.parseMediaType(foto.contentType()))
+                                .cacheControl(CacheControl.noCache())
+                                .body(foto.bytes());
+        }
+
+        @PreAuthorize("hasAuthority('FUNCIONARIOS_GERENCIAR')")
+        @DeleteMapping("/{id}/foto")
+        public ResponseEntity<FuncionarioResponse> removerFoto(@PathVariable UUID id) {
+                return ResponseEntity.ok(funcionarioService.removerFoto(id));
         }
 }

@@ -1,4 +1,4 @@
-import {api} from "./api";
+import { api } from "./api";
 import type { Employee, EmployeeRequest, EmployeeTerminationRequest } from "../types/employee";
 
 const employeeService = {
@@ -8,7 +8,7 @@ const employeeService = {
     const response = await api.get<number>(
       `/funcionarios/status/${status}/count`
     );
-  
+
     return response.data;
   },
   async findAll(): Promise<Employee[]> { return (await api.get<Employee[]>("/funcionarios")).data; },
@@ -23,6 +23,27 @@ const employeeService = {
   },
   async terminate(id: string, data: EmployeeTerminationRequest): Promise<Employee> {
     return (await api.patch<Employee>(`/funcionarios/${id}/desligar`, data)).data;
+  },
+
+  async uploadPhoto(id: string, file: File): Promise<Employee> {
+    const formData = new FormData();
+    formData.append("arquivo", file);
+    return (
+      await api.post<Employee>(`/funcionarios/${id}/foto`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+    ).data;
+  },
+
+  async fetchPhotoUrl(id: string): Promise<string> {
+    const response = await api.get<Blob>(`/funcionarios/${id}/foto`, {
+      responseType: "blob",
+    });
+    return URL.createObjectURL(response.data);
+  },
+
+  async removePhoto(id: string): Promise<Employee> {
+    return (await api.delete<Employee>(`/funcionarios/${id}/foto`)).data;
   },
 };
 

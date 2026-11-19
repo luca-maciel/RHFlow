@@ -4,6 +4,7 @@ import axios from "axios";
 import Sidebar from "../../components/layout/Sidebar";
 import Header from "../../components/layout/Header";
 import EmployeeModal from "../../components/employees/EmployeeModal";
+import EmployeeAvatar from "../../components/employees/EmployeeAvatar";
 import employeeService from "../../services/employeeService";
 import companyService from "../../services/companyService";
 import departmentService from "../../services/departmentService";
@@ -12,21 +13,18 @@ import type { Employee, EmployeeRequest } from "../../types/employee";
 import type { Company } from "../../types/company";
 import type { Department } from "../../types/department";
 import type { Position } from "../../types/position";
+
 const VALID_STATUSES = ["ATIVO", "FERIAS", "AFASTADO", "DESLIGADO"];
+
 const date = (v: string | null) => {
   if (!v) return "—";
   const [y, m, d] = v.split("-");
   return `${d}/${m}/${y}`;
 };
-const initials = (n: string) => {
-  const a = n.trim().split(/\s+/);
-  return a.length === 1
-    ? a[0].slice(0, 2).toUpperCase()
-    : (a[0][0] + a.at(-1)![0]).toUpperCase();
-};
+
 function Badge({ s }: { s: string }) {
   const c =
-s === "ATIVO"
+    s === "ATIVO"
       ? "text-emerald-600"
       : s === "FERIAS"
         ? "text-blue-600"
@@ -35,17 +33,20 @@ s === "ATIVO"
           : "text-muted";
   return (
     <span
-className={`rounded-full bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold ${c}`}
+      className={`rounded-full bg-surface-secondary px-2.5 py-1 text-[10px] font-semibold ${c}`}
     >
       {s}
     </span>
   );
 }
+
 export default function Employees() {
   const nav = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFromUrl = searchParams.get("status");
   const periodFromUrl = searchParams.get("period");
+  const departmentFromUrl = searchParams.get("department");
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]),
     [companies, setCompanies] = useState<Company[]>([]),
@@ -58,13 +59,14 @@ export default function Employees() {
     [selected, setSelected] = useState<Employee | null>(null);
   const [search, setSearch] = useState(""),
     [company, setCompany] = useState("TODAS"),
-    [department, setDepartment] = useState("TODOS"),
+    [department, setDepartment] = useState(departmentFromUrl || "TODOS"),
     [position, setPosition] = useState("TODOS"),
     [status, setStatus] = useState(
       statusFromUrl && VALID_STATUSES.includes(statusFromUrl)
         ? statusFromUrl
         : "TODOS",
     );
+
   async function load() {
     try {
       setLoading(true);
@@ -86,9 +88,11 @@ export default function Employees() {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     load();
   }, []);
+
   useEffect(() => {
     const nextStatus =
       statusFromUrl && VALID_STATUSES.includes(statusFromUrl)
@@ -96,6 +100,11 @@ export default function Employees() {
         : "TODOS";
     setStatus(nextStatus);
   }, [statusFromUrl]);
+
+  useEffect(() => {
+    setDepartment(departmentFromUrl || "TODOS");
+  }, [departmentFromUrl]);
+
   function changeStatusFilter(value: string) {
     setStatus(value);
     const params = new URLSearchParams(searchParams);
@@ -107,6 +116,7 @@ export default function Employees() {
     params.delete("period");
     setSearchParams(params);
   }
+
   const filtered = useMemo(
     () =>
       employees.filter((e) => {
@@ -158,12 +168,14 @@ export default function Employees() {
       periodFromUrl,
     ],
   );
+
   const deps = departments.filter(
       (x) => company === "TODAS" || x.empresaId === company,
     ),
     jobs = positions.filter(
       (x) => department === "TODOS" || x.departamentoId === department,
     );
+
   const clear = () => {
     setSearch("");
     setCompany("TODAS");
@@ -173,33 +185,42 @@ export default function Employees() {
     const params = new URLSearchParams(searchParams);
     params.delete("status");
     params.delete("period");
+    params.delete("department");
     setSearchParams(params);
   };
-  async function save(data: EmployeeRequest) {
-    try {
-      setSaving(true);
-      setError("");
-      if (selected) {
-        await employeeService.update(selected.id, data);
-        setModal(false);
-        setSelected(null);
-        await load();
-      } else {
-        const created = await employeeService.create(data);
-        setModal(false);
-        setSelected(null);
-        nav(`/funcionarios/${created.id}`);
+
+  async function save(data: EmployeeRequest, photoFile?: File | null) {
+  try {
+    setSaving(true);
+    setError("");
+    if (selected) {
+      await employeeService.update(selected.id, data);
+      if (photoFile) {
+        await employeeService.uploadPhoto(selected.id, photoFile);
       }
-    } catch (e) {
-      console.error(e);
-      const d = axios.isAxiosError(e) ? e.response?.data : null;
-      setError(
-        d?.message ?? d?.error ?? "Não foi possível salvar o funcionário.",
-      );
-    } finally {
-      setSaving(false);
+      setModal(false);
+      setSelected(null);
+      await load();
+    } else {
+      const created = await employeeService.create(data);
+      if (photoFile) {
+        await employeeService.uploadPhoto(created.id, photoFile);
+      }
+      setModal(false);
+      setSelected(null);
+      nav(`/funcionarios/${created.id}`);
     }
+  } catch (e) {
+    console.error(e);
+    const d = axios.isAxiosError(e) ? e.response?.data : null;
+    setError(
+      d?.message ?? d?.error ?? "Não foi possível salvar o funcionário.",
+    );
+  } finally {
+    setSaving(false);
   }
+}
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -219,11 +240,11 @@ export default function Employees() {
               </p>
             </div>
             <button
-onClick={() => {
+              onClick={() => {
                 setSelected(null);
                 setModal(true);
               }}
-className="flex h-11 w-full items-center justify-center gap-2
+              className="flex h-11 w-full items-center justify-center gap-2
                 rounded-xl bg-blue-600 px-5
                 text-xs font-semibold text-white
                 shadow-[0_6px_15px_rgba(37,99,235,0.18)]
@@ -233,58 +254,59 @@ className="flex h-11 w-full items-center justify-center gap-2
               + Novo funcionário
             </button>
           </section>
+
           <section className="overflow-hidden rounded-2xl border border-app-border bg-surface">
             <div className="border-b border-app-border p-4 sm:p-5">
               <input
-value={search}
-onChange={(event) => setSearch(event.target.value)}
-placeholder="Pesquisar funcionário..."
-className="mb-4 h-10 w-full max-w-[380px] rounded-xl border border-app-border bg-background px-4 text-xs text-foreground outline-none focus:border-primary"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Pesquisar funcionário..."
+                className="mb-4 h-10 w-full max-w-[380px] rounded-xl border border-app-border bg-background px-4 text-xs text-foreground outline-none focus:border-primary"
               />
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <Filter
-value={company}
-first="TODAS"
-label="Todas as empresas"
-options={companies.map((x) => [x.id, x.nome])}
-change={(v) => {
+                  value={company}
+                  first="TODAS"
+                  label="Todas as empresas"
+                  options={companies.map((x) => [x.id, x.nome])}
+                  change={(v) => {
                     setCompany(v);
                     setDepartment("TODOS");
                     setPosition("TODOS");
                   }}
                 />
                 <Filter
-value={department}
-first="TODOS"
-label="Todos os departamentos"
-options={deps.map((x) => [x.id, x.nome])}
-change={(v) => {
+                  value={department}
+                  first="TODOS"
+                  label="Todos os departamentos"
+                  options={deps.map((x) => [x.id, x.nome])}
+                  change={(v) => {
                     setDepartment(v);
                     setPosition("TODOS");
                   }}
                 />
                 <Filter
-value={position}
-first="TODOS"
-label="Todos os cargos"
-options={jobs.map((x) => [x.id, x.nome])}
-change={setPosition}
+                  value={position}
+                  first="TODOS"
+                  label="Todos os cargos"
+                  options={jobs.map((x) => [x.id, x.nome])}
+                  change={setPosition}
                 />
                 <Filter
-value={status}
-first="TODOS"
-label="Todos os status"
-options={[
+                  value={status}
+                  first="TODOS"
+                  label="Todos os status"
+                  options={[
                     ["ATIVO", "Ativo"],
                     ["FERIAS", "Férias"],
                     ["AFASTADO", "Afastado"],
                     ["DESLIGADO", "Desligado"],
                   ]}
-change={changeStatusFilter}
+                  change={changeStatusFilter}
                 />
                 <button
-onClick={clear}
-className="h-10 rounded-xl border border-app-border text-xs font-semibold text-muted"
+                  onClick={clear}
+                  className="h-10 rounded-xl border border-app-border text-xs font-semibold text-muted"
                 >
                   Limpar filtros
                 </button>
@@ -293,6 +315,7 @@ className="h-10 rounded-xl border border-app-border text-xs font-semibold text-m
                 {filtered.length} funcionários encontrados
               </p>
             </div>
+
             {loading ? (
               <div className="py-14 text-center text-xs text-muted">
                 Carregando funcionários...
@@ -319,8 +342,8 @@ className="h-10 rounded-xl border border-app-border text-xs font-semibold text-m
                           "Ações",
                         ].map((x) => (
                           <th
-key={x}
-className={`px-5 py-3 text-[10px] uppercase text-muted-light ${x === "Ações" ? "text-right" : "text-left"}`}
+                            key={x}
+                            className={`px-5 py-3 text-[10px] uppercase text-muted-light ${x === "Ações" ? "text-right" : "text-left"}`}
                           >
                             {x}
                           </th>
@@ -330,14 +353,17 @@ className={`px-5 py-3 text-[10px] uppercase text-muted-light ${x === "Ações" ?
                     <tbody>
                       {filtered.map((e) => (
                         <tr
-key={e.id}
-className="border-b border-app-border last:border-0 hover:bg-background/70"
+                          key={e.id}
+                          className="border-b border-app-border last:border-0 hover:bg-background/70"
                         >
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-icon-surface text-[11px] font-bold text-primary">
-                                {initials(e.nome)}
-                              </div>
+                              <EmployeeAvatar
+                                employeeId={e.id}
+                                name={e.nome}
+                                hasPhoto={e.possuiFoto}
+                                className="h-10 w-10 rounded-full text-[11px]"
+                              />
                               <div>
                                 <p className="text-xs font-semibold text-foreground">
                                   {e.nome}
@@ -365,17 +391,17 @@ className="border-b border-app-border last:border-0 hover:bg-background/70"
                           </td>
                           <td className="px-5 py-4 text-right">
                             <button
-onClick={() => nav(`/funcionarios/${e.id}`)}
-className="mr-2 text-[10px] font-semibold text-primary"
+                              onClick={() => nav(`/funcionarios/${e.id}`)}
+                              className="mr-2 text-[10px] font-semibold text-primary"
                             >
                               Visualizar
                             </button>
                             <button
-onClick={() => {
+                              onClick={() => {
                                 setSelected(e);
                                 setModal(true);
                               }}
-className="text-[10px] font-semibold text-muted"
+                              className="text-[10px] font-semibold text-muted"
                             >
                               Editar
                             </button>
@@ -385,20 +411,29 @@ className="text-[10px] font-semibold text-muted"
                     </tbody>
                   </table>
                 </div>
+
                 <div className="flex flex-col gap-4 p-4 md:hidden">
                   {filtered.map((e) => (
                     <article
-key={e.id}
-className="rounded-2xl border border-app-border p-4"
+                      key={e.id}
+                      className="rounded-2xl border border-app-border p-4"
                     >
-                      <div className="mb-4 flex justify-between">
-                        <div>
-                          <h3 className="text-sm font-semibold text-foreground">
-                            {e.nome}
-                          </h3>
-                          <p className="text-[10px] text-muted-light">
-                            {e.email || e.cpf}
-                          </p>
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <EmployeeAvatar
+                            employeeId={e.id}
+                            name={e.nome}
+                            hasPhoto={e.possuiFoto}
+                            className="h-10 w-10 rounded-full text-[11px]"
+                          />
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-semibold text-foreground">
+                              {e.nome}
+                            </h3>
+                            <p className="truncate text-[10px] text-muted-light">
+                              {e.email || e.cpf}
+                            </p>
+                          </div>
                         </div>
                         <Badge s={e.status} />
                       </div>
@@ -410,17 +445,17 @@ className="rounded-2xl border border-app-border p-4"
                       </p>
                       <div className="mt-4 flex gap-2 border-t border-app-border pt-4">
                         <button
-onClick={() => nav(`/funcionarios/${e.id}`)}
-className="flex-1 rounded-xl border border-app-border py-2.5 text-xs text-muted"
+                          onClick={() => nav(`/funcionarios/${e.id}`)}
+                          className="flex-1 rounded-xl border border-app-border py-2.5 text-xs text-muted"
                         >
                           Visualizar
                         </button>
                         <button
-onClick={() => {
+                          onClick={() => {
                             setSelected(e);
                             setModal(true);
                           }}
-className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-white"
+                          className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-white"
                         >
                           Editar
                         </button>
@@ -433,30 +468,32 @@ className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-semibold text-white"
           </section>
         </div>
       </main>
+
       <EmployeeModal
-isOpen={modal}
-employee={selected}
-companies={companies}
-departments={departments}
-positions={positions}
-loading={saving}
-onClose={() => {
+        isOpen={modal}
+        employee={selected}
+        companies={companies}
+        departments={departments}
+        positions={positions}
+        loading={saving}
+        onClose={() => {
           if (!saving) {
             setModal(false);
             setSelected(null);
           }
         }}
-onSubmit={save}
+        onSubmit={save}
       />
     </div>
   );
 }
+
 function Filter({
-value,
-first,
-label,
-options,
-change,
+  value,
+  first,
+  label,
+  options,
+  change,
 }: {
   value: string;
   first: string;
@@ -466,9 +503,9 @@ change,
 }) {
   return (
     <select
-value={value}
-onChange={(e) => change(e.target.value)}
-className="h-10 rounded-xl border border-app-border bg-surface px-3 text-xs text-muted"
+      value={value}
+      onChange={(e) => change(e.target.value)}
+      className="h-10 rounded-xl border border-app-border bg-surface px-3 text-xs text-muted"
     >
       <option value={first}>{label}</option>
       {options.map(([v, l]) => (

@@ -5,7 +5,7 @@ const EXPIRATION_KEY = "rhflow_token_expiration";
 
 export const api = axios.create({
   baseURL:
-    "http://172.16.16.200:8080",
+    "http://localhost:8080",
   timeout: 10000,
 });
 

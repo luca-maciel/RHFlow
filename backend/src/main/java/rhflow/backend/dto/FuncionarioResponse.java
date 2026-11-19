@@ -189,4 +189,14 @@ public class FuncionarioResponse {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    private boolean possuiFoto;
+
+    public boolean isPossuiFoto() {
+        return possuiFoto;
+    }
+
+    public void setPossuiFoto(boolean possuiFoto) {
+        this.possuiFoto = possuiFoto;
+    }
 }

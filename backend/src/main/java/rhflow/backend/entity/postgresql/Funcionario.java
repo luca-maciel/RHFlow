@@ -78,6 +78,17 @@ public class Funcionario {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "foto_path", length = 255)
+    private String fotoPath;
+
+    public String getFotoPath() {
+        return fotoPath;
+    }
+
+    public void setFotoPath(String fotoPath) {
+        this.fotoPath = fotoPath;
+    }
+
     @PrePersist
     public void prePersist() {
         LocalDateTime agora = LocalDateTime.now();

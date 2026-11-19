@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, useRef,type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../../components/layout/Sidebar";
@@ -16,6 +16,7 @@ import type { Department } from "../../types/department";
 import type { Position } from "../../types/position";
 import type { Contract, ContractType } from "../../types/contract";
 import type { Address } from "../../types/address";
+import EmployeeAvatar from "../../components/employees/EmployeeAvatar";
 
 const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
   CLT: "CLT",
@@ -56,6 +57,9 @@ function Badge({ s }: { s: string }) {
 }
 
 export default function EmployeeDetails() {
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [photoVersion, setPhotoVersion] = useState(0);
+
   const nav = useNavigate(),
     { id } = useParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -103,6 +107,39 @@ export default function EmployeeDetails() {
     useState<Contract | null>(null);
   const [contractEndDate, setContractEndDate] = useState("");
 
+  async function handlePhotoChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !id) return;
+
+    try {
+      setSaving(true);
+      setError("");
+      const updated = await employeeService.uploadPhoto(id, file);
+      setEmployee(updated);
+      setPhotoVersion((v) => v + 1);
+    } catch (err) {
+      setError(msg(err, "Não foi possível enviar a foto."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemovePhoto() {
+    if (!id) return;
+    try {
+      setSaving(true);
+      setError("");
+      const updated = await employeeService.removePhoto(id);
+      setEmployee(updated);
+      setPhotoVersion((v) => v + 1);
+    } catch (err) {
+      setError(msg(err, "Não foi possível remover a foto."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function load() {
     if (!id) return;
     try {
@@ -141,19 +178,24 @@ export default function EmployeeDetails() {
     return e.response?.data?.message ?? e.response?.data?.error ?? f;
   };
 
-  async function save(data: EmployeeRequest) {
-    if (!id) return;
-    try {
-      setSaving(true);
-      setError("");
-      setEmployee(await employeeService.update(id, data));
-      setModal(false);
-    } catch (e) {
-      setError(msg(e, "Não foi possível atualizar o funcionário."));
-    } finally {
-      setSaving(false);
+  async function save(data: EmployeeRequest, photoFile?: File | null) {
+  if (!id) return;
+  try {
+    setSaving(true);
+    setError("");
+    let updated = await employeeService.update(id, data);
+    if (photoFile) {
+      updated = await employeeService.uploadPhoto(id, photoFile);
+      setPhotoVersion((v) => v + 1);
     }
+    setEmployee(updated);
+    setModal(false);
+  } catch (e) {
+    setError(msg(e, "Não foi possível atualizar o funcionário."));
+  } finally {
+    setSaving(false);
   }
+}
 
   async function reactivate() {
     if (!id) return;
@@ -353,22 +395,58 @@ export default function EmployeeDetails() {
               <section className="mb-6 rounded-2xl border border-app-border bg-surface p-5 sm:p-6">
                 <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-icon-surface text-xl font-bold text-primary">
-                      {initials(employee.nome)}
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h1 className="text-2xl font-bold text-foreground">
-                          {employee.nome}
-                        </h1>
-                        <Badge s={employee.status} />
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => photoInputRef.current?.click()}
+                        title="Clique para selecionar uma foto de perfil"
+                        className="group relative overflow-hidden rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <EmployeeAvatar
+                          employeeId={employee.id}
+                          name={employee.nome}
+                          hasPhoto={employee.possuiFoto}
+                          refreshKey={photoVersion}
+                          className="h-20 w-20 rounded-2xl text-xl"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100">
+                          {employee.possuiFoto ? "Alterar" : "Adicionar"}
+                        </span>
+                      </button>
+
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(e) => void handlePhotoChange(e)}
+                        className="hidden"
+                      />
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={() => photoInputRef.current?.click()}
+                          className="text-[11px] font-semibold text-primary hover:underline disabled:opacity-50"
+                        >
+                          {employee.possuiFoto ? "Alterar foto" : "Adicionar foto"}
+                        </button>
+
+                        {employee.possuiFoto && (
+                          <>
+                            <span className="text-[10px] text-muted-light">·</span>
+                            <button
+                              type="button"
+                              disabled={saving}
+                              onClick={() => void handleRemovePhoto()}
+                              className="text-[11px] font-medium text-muted hover:text-danger disabled:opacity-50"
+                            >
+                              Remover
+                            </button>
+                          </>
+                        )}
                       </div>
-                      <p className="mt-1 text-xs text-muted">
-                        {employee.cargoNome}
-                      </p>
-                      <p className="mt-1 text-[10px] text-muted-light">
-                        CPF {employee.cpf}
-                      </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">

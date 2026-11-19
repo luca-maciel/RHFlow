@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import EmployeeAvatar from "./EmployeeAvatar";
 import type { Company } from "../../types/company";
 import type { Department } from "../../types/department";
 import type { Position } from "../../types/position";
@@ -12,8 +13,9 @@ type Props = {
   positions: Position[];
   loading?: boolean;
   onClose: () => void;
-  onSubmit: (data: EmployeeRequest) => Promise<void> | void;
+  onSubmit: (data: EmployeeRequest, photoFile?: File | null) => Promise<void> | void;
 };
+
 type Form = {
   empresaId: string;
   departamentoId: string;
@@ -27,11 +29,13 @@ type Form = {
   dataAdmissao: string;
   status: string;
 };
+
 const statusOptions = [
   { value: "ATIVO", label: "Ativo" },
   { value: "AFASTADO", label: "Afastado" },
   { value: "FERIAS", label: "Férias" },
 ];
+
 const empty: Form = {
   empresaId: "",
   departamentoId: "",
@@ -58,6 +62,10 @@ export default function EmployeeModal({
 }: Props) {
   const [form, setForm] = useState<Form>(empty);
   const [error, setError] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (!isOpen) return;
     setForm(
@@ -77,12 +85,26 @@ export default function EmployeeModal({
           }
         : empty,
     );
+    setPhotoFile(null);
+    setPhotoPreview(null);
     setError("");
   }, [isOpen, employee]);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
+
   const comps = useMemo(
     () => companies.filter((x) => x.ativo || x.id === employee?.empresaId),
     [companies, employee],
   );
+
   const deps = useMemo(
     () =>
       departments.filter(
@@ -92,6 +114,7 @@ export default function EmployeeModal({
       ),
     [departments, form.empresaId, employee],
   );
+
   const jobs = useMemo(
     () =>
       positions.filter(
@@ -101,8 +124,27 @@ export default function EmployeeModal({
       ),
     [positions, form.departamentoId, employee],
   );
+
   const set = (k: keyof Form, v: string) => setForm((x) => ({ ...x, [k]: v }));
-  async function submit(e: any) {
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Formato de imagem inválido. Utilize JPEG, PNG ou WEBP.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("A foto deve ter no máximo 5 MB.");
+      return;
+    }
+    setError("");
+    setPhotoFile(file);
+  }
+
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const cpf = form.cpf.replace(/\D/g, "");
     if (!form.empresaId || !form.departamentoId || !form.cargoId)
@@ -112,19 +154,24 @@ export default function EmployeeModal({
       return setError("O CPF deve conter exatamente 11 dígitos.");
     if (!form.dataAdmissao) return setError("Informe a data de admissão.");
     setError("");
-    await onSubmit({
-      cargoId: form.cargoId,
-      nome: form.nome.trim(),
-      cpf,
-      rg: form.rg.trim(),
-      dataNascimento: form.dataNascimento || null,
-      email: form.email.trim(),
-      telefone: form.telefone.trim(),
-      dataAdmissao: form.dataAdmissao,
-      status: form.status || null,
-    });
+    await onSubmit(
+      {
+        cargoId: form.cargoId,
+        nome: form.nome.trim(),
+        cpf,
+        rg: form.rg.trim(),
+        dataNascimento: form.dataNascimento || null,
+        email: form.email.trim(),
+        telefone: form.telefone.trim(),
+        dataAdmissao: form.dataAdmissao,
+        status: form.status || null,
+      },
+      photoFile,
+    );
   }
+
   if (!isOpen) return null;
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-[2px] sm:items-center sm:p-6"
@@ -141,12 +188,14 @@ export default function EmployeeModal({
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="h-9 w-9 rounded-xl text-muted hover:bg-surface-hover"
           >
             ×
           </button>
         </div>
+
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
           <div className="overflow-y-auto p-5 sm:p-6">
             <h3 className="mb-4 text-xs font-semibold text-foreground">
@@ -190,7 +239,9 @@ export default function EmployeeModal({
                 onChange={(v) => set("dataAdmissao", v)}
               />
               {employee?.status === "DESLIGADO" ? (
-                <p className="text-xs flex items-center text-center text-muted">Desligado — utilize a ação Reativar nos detalhes do funcionário.</p>
+                <p className="flex items-center text-center text-xs text-muted">
+                  Desligado — utilize a ação Reativar nos detalhes do funcionário.
+                </p>
               ) : (
                 <Select
                   label="Status"
@@ -201,10 +252,76 @@ export default function EmployeeModal({
                 />
               )}
             </div>
+
             <div className="my-6 border-t border-app-border" />
+
             <h3 className="mb-4 text-xs font-semibold text-foreground">
               Dados pessoais
             </h3>
+
+            {/* FOTO DE PERFIL (OPCIONAL) */}
+            <div className="mb-5 flex flex-wrap items-center gap-4 rounded-2xl border border-app-border bg-background/50 p-4">
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt="Pré-visualização"
+                  className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+                />
+              ) : employee ? (
+                <EmployeeAvatar
+                  employeeId={employee.id}
+                  name={form.nome || employee.nome}
+                  hasPhoto={employee.possuiFoto}
+                  className="h-16 w-16 rounded-2xl text-base"
+                />
+              ) : (
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-icon-surface text-base font-bold text-primary">
+                  {(form.nome.trim().slice(0, 2) || "FT").toUpperCase()}
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-foreground">
+                  Foto de perfil <span className="font-normal text-muted">(opcional)</span>
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted">
+                  {photoFile
+                    ? photoFile.name
+                    : "Formatos aceitos: JPEG, PNG ou WEBP até 5 MB."}
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-xl border border-app-border bg-surface px-3.5 py-1.5 text-[11px] font-semibold text-primary transition hover:bg-icon-surface disabled:opacity-50"
+                  >
+                    {photoFile || employee?.possuiFoto
+                      ? "Trocar imagem"
+                      : "Selecionar imagem"}
+                  </button>
+                  {photoFile && (
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setPhotoFile(null)}
+                      className="rounded-xl px-3 py-1.5 text-[11px] font-medium text-muted hover:text-danger"
+                    >
+                      Descartar seleção
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Input
@@ -243,12 +360,14 @@ export default function EmployeeModal({
                 />
               </div>
             </div>
+
             {error && (
               <div className="mt-5 rounded-xl bg-red-500/10 px-4 py-3 text-xs text-danger">
                 {error}
               </div>
             )}
           </div>
+
           <div className="flex flex-col-reverse gap-2 border-t border-app-border p-4 sm:flex-row sm:justify-end">
             <button
               type="button"
@@ -273,8 +392,10 @@ export default function EmployeeModal({
     </div>
   );
 }
+
 const cls =
   "h-11 w-full rounded-xl border border-app-border bg-surface-secondary px-3.5 text-xs text-foreground outline-none focus:border-primary disabled:opacity-60";
+
 function Input({
   label,
   value,
@@ -300,6 +421,7 @@ function Input({
     </div>
   );
 }
+
 function Select({
   label,
   value,
