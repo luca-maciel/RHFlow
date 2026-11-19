@@ -153,12 +153,13 @@ export default function App() {
         >
           <Route path="/permissoes" element={<PermissionsPage />} />
         </Route>
-      </Route>
-          {/* ADMINISTRAÇÃO: AUDITORIA */}
-      <Route
-        element={<PermissionRoute permissions={["AUDITORIA_VISUALIZAR"]} />}
-      >
-        <Route path="/auditoria" element={<AuditLogs />} />
+
+        {/* ADMINISTRAÇÃO: AUDITORIA */}
+        <Route
+          element={<PermissionRoute permissions={["AUDITORIA_VISUALIZAR"]} />}
+        >
+          <Route path="/auditoria" element={<AuditLogs />} />
+        </Route>
       </Route>
 
       {/* ROTAS DESCONHECIDAS */}

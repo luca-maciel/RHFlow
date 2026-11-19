@@ -28,6 +28,12 @@ import rhflow.backend.entity.postgresql.Usuario;
 import rhflow.backend.exception.ResourceNotFoundException;
 import rhflow.backend.repository.postgresql.UsuarioRepository;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import rhflow.backend.dto.ForgotPasswordRequest;
+import rhflow.backend.dto.ResetPasswordRequest;
+import rhflow.backend.exception.BusinessException;
+
 @Service
 public class AuthService {
 
@@ -37,16 +43,22 @@ public class AuthService {
     private final AuditoriaService auditoriaService;
     private final long expirationMinutes;
 
+    private final EmailService emailService;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final long RESET_CODE_EXPIRATION_MINUTES = 15;
+
     public AuthService(
             UsuarioRepository usuarioRepository,
             PasswordEncoder passwordEncoder,
             JwtEncoder jwtEncoder,
             AuditoriaService auditoriaService,
+            EmailService emailService,
             @Value("${app.jwt.expiration-minutes}") long expirationMinutes) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
         this.auditoriaService = auditoriaService;
+        this.emailService = emailService;
         this.expirationMinutes = expirationMinutes;
     }
 
@@ -134,6 +146,68 @@ public class AuthService {
             usuario.isAtivo(),
             perfis,
             permissoes
+        );
+    }
+
+    @Transactional
+    public void solicitarRecuperacaoSenha(ForgotPasswordRequest request) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+
+        usuarioRepository.findByEmailIgnoreCase(email).ifPresent(usuario -> {
+            if (!usuario.isAtivo()) {
+                return;
+            }
+
+            String codigo = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+            usuario.setResetTokenHash(passwordEncoder.encode(codigo));
+            usuario.setResetTokenExpiraEm(
+                    LocalDateTime.now().plusMinutes(RESET_CODE_EXPIRATION_MINUTES)
+            );
+            usuarioRepository.save(usuario);
+
+            emailService.enviarCodigoRecuperacao(usuario.getEmail(), usuario.getNome(), codigo);
+
+            auditoriaService.registrarComoUsuario(
+                    usuario.getId().toString(),
+                    usuario.getNome() + " (" + usuario.getEmail() + ")",
+                    "SOLICITAR_RECUPERACAO_SENHA",
+                    "AUTENTICACAO",
+                    usuario.getId().toString(),
+                    "Código de recuperação de senha enviado por e-mail para " + usuario.getEmail(),
+                    Map.of("email", usuario.getEmail())
+            );
+        });
+    }
+
+    @Transactional
+    public void redefinirSenha(ResetPasswordRequest request) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        String codigo = request.codigo().trim();
+
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new BusinessException("Código de verificação inválido ou expirado."));
+
+        if (!usuario.isAtivo()
+                || usuario.getResetTokenHash() == null
+                || usuario.getResetTokenExpiraEm() == null
+                || usuario.getResetTokenExpiraEm().isBefore(LocalDateTime.now())
+                || !passwordEncoder.matches(codigo, usuario.getResetTokenHash())) {
+            throw new BusinessException("Código de verificação inválido ou expirado.");
+        }
+
+        usuario.setSenhaHash(passwordEncoder.encode(request.novaSenha()));
+        usuario.setResetTokenHash(null);
+        usuario.setResetTokenExpiraEm(null);
+        usuarioRepository.save(usuario);
+
+        auditoriaService.registrarComoUsuario(
+                usuario.getId().toString(),
+                usuario.getNome() + " (" + usuario.getEmail() + ")",
+                "REDEFINIR_SENHA",
+                "AUTENTICACAO",
+                usuario.getId().toString(),
+                "Senha redefinida com sucesso por " + usuario.getNome(),
+                Map.of("email", usuario.getEmail())
         );
     }
 }

@@ -34,7 +34,10 @@ public class SecurityConfig {
                                                 // Endpoint público
                                                 .requestMatchers(
                                                                 HttpMethod.POST,
-                                                                "/auth/login")
+                                                                "/auth/login",
+                                                                "/auth/forgot-password",
+                                                                "/auth/reset-password"
+)
                                                 .permitAll()
 
                                                 // Usuários

@@ -60,6 +60,28 @@ public class Usuario {
         updatedAt = LocalDateTime.now();
     }
 
+    @Column(name = "reset_token_hash", length = 255)
+    private String resetTokenHash;
+
+    @Column(name = "reset_token_expira_em")
+    private LocalDateTime resetTokenExpiraEm;
+
+    public String getResetTokenHash() {
+        return resetTokenHash;
+    }
+
+    public void setResetTokenHash(String resetTokenHash) {
+        this.resetTokenHash = resetTokenHash;
+    }
+
+    public LocalDateTime getResetTokenExpiraEm() {
+        return resetTokenExpiraEm;
+    }
+
+    public void setResetTokenExpiraEm(LocalDateTime resetTokenExpiraEm) {
+        this.resetTokenExpiraEm = resetTokenExpiraEm;
+    }
+
     public UUID getId() {
         return id;
     }
