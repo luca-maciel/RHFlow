@@ -31,12 +31,6 @@ const date = (v: string | null) => {
   return `${d}/${m}/${y}`;
 };
 
-const initials = (n: string) => {
-  const a = n.trim().split(/\s+/);
-  return a.length === 1
-    ? a[0].slice(0, 2).toUpperCase()
-    : (a[0][0] + a.at(-1)![0]).toUpperCase();
-};
 
 function Badge({ s }: { s: string }) {
   const c =

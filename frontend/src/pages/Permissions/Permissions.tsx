@@ -26,7 +26,6 @@ import { accessService } from "../../services/accessService";
 
 import type {
   Permission,
-  PermissionModule,
 } from "../../types/access";
 
 type PermissionForm = {
@@ -39,19 +38,6 @@ const empty: PermissionForm = {
   description: "",
 };
 
-const moduleNames: Record<string, PermissionModule> = {
-  USUARIOS: "Usuários",
-  PERFIS: "Perfis",
-  PERMISSOES: "Permissões",
-  FUNCIONARIOS: "Funcionários",
-  CONTRATOS: "Contratos",
-  EMPRESAS: "Empresas",
-  DEPARTAMENTOS: "Departamentos",
-  CARGOS: "Cargos",
-  FERIAS: "Férias",
-  DOCUMENTOS: "Documentos",
-  AUDITORIA: "Auditoria",
-};
 
 export default function Permissions() {
   const { hasPermission } = useAuth();

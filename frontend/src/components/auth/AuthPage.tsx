@@ -4,7 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, KeyRound, Mail, Moon, ShieldCheck, Sun } from "lucide-react";
+import { ArrowLeft, KeyRound, Mail, Moon, Sun } from "lucide-react";
 import { api } from "../../services/api";
 
 type AuthStep = "login" | "forgot" | "reset";
