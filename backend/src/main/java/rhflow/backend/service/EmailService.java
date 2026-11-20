@@ -3,8 +3,8 @@ package rhflow.backend.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
@@ -16,7 +16,7 @@ public class EmailService {
             JavaMailSender mailSender,
             @Value("${app.mail.from}") String from) {
         this.mailSender = mailSender;
-        this.from = from;
+        this.from = "RHFlow <" + from + ">";
     }
 
     @Async

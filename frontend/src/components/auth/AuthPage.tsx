@@ -255,11 +255,6 @@ export default function AuthPage() {
             </div>
 
             <div className="my-auto px-4">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-[11px] font-medium text-white/90 backdrop-blur">
-                <ShieldCheck size={14} />
-                Acesso Corporativo Restrito
-              </div>
-
               <h2 className="mb-3.5 text-[32px] font-bold leading-tight tracking-tight">
                 Gestão de Pessoas centralizada.
               </h2>
